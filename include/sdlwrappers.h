@@ -7,6 +7,7 @@ typedef struct {
     bool m1;
     bool m2;
     vec2 mpos;
+    vec2 mgpos;
 } Input;
 
 typedef struct {

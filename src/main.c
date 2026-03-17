@@ -12,9 +12,15 @@
 #include "sugar.h"
 #include "timing.h"
 #include "types.h"
+
+const i64 PLAYFIELD_X0 = 5;
 const i64 PLAYFIELD_GXOFFSET = 5;
+const i64 PLAYFIELD_Y0 = 0;
+const i64 SIDE_WALL_WIDTH = 5;
 const i64 PLAYFIELD_WIDTH = 10;
 const i64 PLAYFIELD_HEIGHT = 20;
+const i64 PLAYFIELD_X1 = PLAYFIELD_X0 + PLAYFIELD_WIDTH;
+const i64 PLAYFIELD_Y1 = PLAYFIELD_Y0 + PLAYFIELD_HEIGHT;
 const i64 PLAYFIELD_GYOFFSET = DEF_ROWS - PLAYFIELD_HEIGHT;
 
 void draw_triangle(SDL_Vertex* tri_verts, size_t vert_count);
@@ -46,6 +52,10 @@ void make_quad(vec2* points, SDL_FColor color) {
     };
     render_quad(vertices);
 }
+double bound(double val, double lo, double hi) {
+    return fmin(hi, (fmax(lo, val)));
+}
+
 void drawBlockV(vec2 tl, double len, const SDL_FColor piece_colors[4]) {
     double bord = len * 0.14;  // border width
     {
@@ -212,6 +222,26 @@ void drawBoundaries() {
         }
     }
 }
+vec2 snapCellToPlayArea(const vec2 pv) {
+    i64 ipx = bound(round(pv.x) / BLOCK_SZ, PLAYFIELD_X0, PLAYFIELD_X1);
+    i64 ipy = bound(round(pv.y) / BLOCK_SZ, PLAYFIELD_Y0, PLAYFIELD_Y1);
+    // if value is between 0-20, value = 0
+    return (vec2){ipx * BLOCK_SZ, ipy * BLOCK_SZ};
+}
+vec2 snapToGrid(const vec2 pv) {
+    i64 ipx = round(pv.x) / BLOCK_SZ;
+    i64 ipy = round(pv.y) / BLOCK_SZ;
+    return (vec2){ipx * BLOCK_SZ, ipy * BLOCK_SZ};
+}
+
+void drawTetro(vec2 pos, const vec2* offsets) {
+#define OFFSET_SZ 4
+    for (int i = 0; i < OFFSET_SZ; i++) {
+        vec2 offset = offsets[i];
+        drawBlockV((vec2){pos.x + BLOCK_SZ * offset.x, pos.y + BLOCK_SZ * offset.y}, BLOCK_SZ,
+                   cyan);
+    }
+}
 SDL_AppResult SDL_AppIterate(void* _) {
     ctx.frame_count++;
     double ms_thisframe = get_current_ms();
@@ -226,20 +256,15 @@ SDL_AppResult SDL_AppIterate(void* _) {
     drawBoundaries();
     drawGrid();
 
-    /*
-    vec2   o = {50, 50};
-    double ext = 40;
-
     vec2 i_piece_offsets[] = {
             {0, 0},
             {0, 1},
             {0, 2},
             {0, 3},
     };
-    for (int i = 0; i < arrlen(i_piece_offsets); i++) {
-        vec2 offset = i_piece_offsets[i];
-        drawBlockV((vec2){o.x + ext * offset.x, o.y + ext * offset.y}, ext, cyan);
-    }
+    drawTetro(ctx.input.mgpos, i_piece_offsets);
+
+    /*
 
     o.x += ext * 3;
     vec2 j_piece_offsets[] = {
@@ -370,6 +395,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 
     case SDL_EVENT_MOUSE_MOTION:
         ctx.input.mpos = (vec2){event->motion.x, event->motion.y};
+        ctx.input.mgpos = snapToGrid((vec2){round(event->motion.x), round(event->motion.y)});
         break;
 
     case SDL_EVENT_QUIT:  //

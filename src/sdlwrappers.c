@@ -47,7 +47,7 @@ SDLContext init_ctx() {
     const size_t RB_CAP = 10000;
     return (SDLContext){.window = NULL,
                         .renderer = NULL,
-                        .input = {},
+                        .input = {.mgpos = {}},
                         .perf = {.show = false,
                                  .fps_rb = rb_create(sizeof(double), RB_CAP),
                                  .ft_rb = rb_create(sizeof(double), RB_CAP)},
