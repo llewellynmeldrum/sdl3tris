@@ -20,19 +20,17 @@ SRC_EXT	:=.c
 OBJ_EXT :=.o
 
 
-CC		:=	clang -std=c2x -Wall -Wimplicit-fallthrough  -Werror
-CC		+= -Wno-unused-parameter -Wno-unused-variable -Wno-unused
-SRC 	:=	$(wildcard $(SRC_DIR)/*$(SRC_EXT)) 
+CC		:=	clang 
+SRC 	:=	$(wildcard $(SRC_DIR)/*$(SRC_EXT))
+SRC 	+=	$(wildcard $(SRC_DIR)/game/*$(SRC_EXT))
 OBJS 	:= 	$(patsubst $(SRC_DIR)/%$(SRC_EXT),$(OBJ_DIR)/%$(OBJ_EXT),$(SRC))
 
 
 # flags for the compiler only 
-CFLAGS	:=-Iinclude $(shell pkg-config sdl3 --cflags)
-CFLAGS	+=-Iinclude $(shell pkg-config sdl3-image --cflags)
+CFLAGS	:=-std=c2x -Wall -Wimplicit-fallthrough -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused -Iinclude $(shell pkg-config sdl3 --cflags)
 
 LDFLAGS	:= 
 LDLIBS	:= $(shell pkg-config sdl3 --libs)
-LDLIBS  += $(shell pkg-config sdl3-image --libs)
 ALLFLAGS:=
 
 
@@ -51,7 +49,10 @@ $(OBJ_DIR)/%$(OBJ_EXT) : $(SRC_DIR)/%$(SRC_EXT)
 # build executable (linking obj -> bin)
 $(EXE): $(EXE_DIR) $(OBJ_DIR) $(OBJS)
 	@$(ECHO_LINK_BANNER)
-	$(CC) $(LDFLAGS) $(OBJS) -o $(EXE) $(LDLIBS)
+	@echo
+	@printf '  %s\n' $(CC)
+	@printf '  %s\n' $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(EXE) $(LDLIBS)
 
 # executing binary
 run: $(EXE)
@@ -99,10 +100,13 @@ tsan: LDLIBS  += -fsanitize=thread
 tsan: clean run 
 
 # ------------ EXTRAS ------------ #
-$(OBJ_DIR):
+$(OBJ_DIR): $(OBJ_DIR)/game
 	@mkdir -p $@
 
 $(EXE_DIR):
+	@mkdir -p $@
+
+$(OBJ_DIR)/game:
 	@mkdir -p $@
 
 help h ? docs: HELP
