@@ -4,74 +4,70 @@
 #include <SDL3/SDL.h>
 
 typedef struct {
-    bool m1;
-    bool m2;
-    vec2 mpos;
-    vec2 mgpos;
+    bool m1down;
+    bool m2down;
+    vec2 mpos;   // raw mouse position, updated on mouse move event
+    vec2 mgpos;  // mouse position snapped to grid.
 } Input;
 
 typedef struct {
-    bool        show;
+    bool        show_perf_in_debug;
     RingBuffer* fps_rb;
-    RingBuffer* ft_rb;
+    RingBuffer* ft_rb;  //  frametime (ms).
     double      ms_lastframe;
-} Perf;
+} Profiler;
 
 typedef struct {
     SDL_FColor clear_color;
 } Draw;
+
 typedef struct SDLContext {
     SDL_Window*   window;
     SDL_Renderer* renderer;
-    Input         input;
-    Perf          perf;
-    Draw          draw;
-    u64           frame_count;
-    u64           clock_freq;
-    double        w;
-    double        h;
-    i64           cols;
-    i64           rows;
+    Input         input;  // interface for input handler
+    Profiler      perf;   // holds performance info
+    Draw          draw;   // holds draw settings
+    // Primitives: (these should probably go into one of the other structs)
+    u64    frame_count;
+    u64    clock_freq;
+    double w;
+    double h;
+    i64    cols;
+    i64    rows;
 } SDLContext;
-extern SDLContext ctx;
+extern SDLContext ctx;  // global context, i dont need multiple.
 
 typedef struct {
     SDL_Vertex* data;
     size_t      size;
 } VertexArray;
-
-// T piece
-const SDL_FColor purple[5];
-const SDL_FColor grey[5];
-// S piece --__
-const SDL_FColor green[5];
-// Z piece __--
-const SDL_FColor red[5];
-// J piece _-_
-const SDL_FColor blue[5];
-// O piece square
-const SDL_FColor yellow[5];
-// L piece -_-
-const SDL_FColor orange[5];
-// I piece
-const SDL_FColor cyan[5];
-
+// Background piece color
 void       drawVertexArray(VertexArray arr);
 SDLContext init_ctx();
 
-#define gr(gr) (SDL_FColor){gr / 255.0, gr / 255.0, gr / 255.0, 1.0}
-#define rgb(r, g, b) (SDL_FColor){r / 255.0, g / 255.0, b / 255.0, 1.0}
-#define rgba(r, g, b, a) (SDL_FColor){r / 255.0, g / 255.0, b / 255.0, a / 255.0}
-#define setrgb(r, g, b) SDL_SetRenderDrawColor(ctx.renderer, r, g, b, 255)
-#define setrgba(r, g, b, a) SDL_SetRenderDrawColor(ctx.renderer, r, g, b, a)
-#define setcolor(c) SDL_SetRenderDrawColorFloat(ctx.renderer, c.r, c.g, c.b, c.a)
-#define getcolor(c) SDL_GetRenderDrawColorFloat(ctx.renderer, &c.r, &c.g, &c.b, &c.a)
-#define makergba(r, g, b, a)                                                                       \
-    (SDL_FColor) {                                                                                 \
-        r, g, b, a                                                                                 \
-    }
+// SDL_FColor from 0->255 grey value.
+#define gr(gr) (SDL_FColor){ gr / 255.0, gr / 255.0, gr / 255.0, 1.0 }
 
+// SDL_FColor from 3x 0->255 rgb values
+#define rgb(r, g, b) (SDL_FColor){ r / 255.0, g / 255.0, b / 255.0, 1.0 }
+
+// SDL_FColor from 4x 0->255 rgba values
+#define rgba(r, g, b, a) (SDL_FColor){ r / 255.0, g / 255.0, b / 255.0, a / 255.0 }
+
+// Sets the renderer draw color from 3x 0->1.0 rgb values
+#define setrgb(r, g, b) SDL_SetRenderDrawColor(ctx.renderer, r, g, b, 255)
+
+// Sets the renderer draw color from 4x 0->1.0 rgba values
+#define setrgba(r, g, b, a) SDL_SetRenderDrawColor(ctx.renderer, r, g, b, a)
+
+// Sets the renderer draw color from a generic rgba(1.0,1.0,1.0,1.0) color struct.
+#define setcolor(c) SDL_SetRenderDrawColorFloat(ctx.renderer, c.r, c.g, c.b, c.a)
+
+// Gets the renderer draw color for a generic rgba(1.0,1.0,1.0,1.0) color struct.
+#define getcolor(c) SDL_GetRenderDrawColorFloat(ctx.renderer, &c.r, &c.g, &c.b, &c.a)
+
+// SDL_Vertex from color, and scalar x,y position
 #define VTX(c, x, y)                                                                               \
     (SDL_Vertex) {                                                                                 \
-        .color = c, .position = {x, y}, .tex_coord = {0}                                           \
+        .color = c, .position = { x, y }, .tex_coord = { 0 }                                       \
     }

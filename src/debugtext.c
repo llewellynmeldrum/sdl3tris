@@ -4,9 +4,10 @@
 
 #include "ringbuffer.h"
 #include "sdlwrappers.h"
+#include "sugar.h"
 #include "types.h"
 
-void drawDebugText(vec2* pos, float txt_scale, const char* fmt, ...) {
+void debugtxt(vec2* pos, float txt_scale, const char* fmt, ...) {
     const float BASE_PX = 8.0;
     const float GAP_PX = 2.0;
 
@@ -18,7 +19,7 @@ void drawDebugText(vec2* pos, float txt_scale, const char* fmt, ...) {
     char    buf[1000];
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buf, len(buf), fmt, args);
+    vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
 
     SDL_SetRenderScale(ctx.renderer, txt_scale, txt_scale);
@@ -30,14 +31,16 @@ void drawDebugText(vec2* pos, float txt_scale, const char* fmt, ...) {
 }
 
 void drawDebugWindow() {
-    vec2 tpos = {4, 4};
-    vec2 mpos = {ctx.input.mpos.x, ctx.input.mpos.y};
-    drawDebugText(&tpos, 14.0, "mpos: %.4f, %.4f", mpos.x, mpos.y);
-    drawDebugText(&tpos, 14.0, "m1: %s", ctx.input.m1 ? "DOWN" : "UP");
+    vec2 tpos = { 4, 4 };
+    vec2 mpos = { ctx.input.mpos.x, ctx.input.mpos.y };
+    debugtxt(&tpos, 14.0, "mpos: %.4f, %.4f", mpos.x, mpos.y);
+    debugtxt(&tpos, 14.0, "m1: %s", ctx.input.m1down ? "DOWN" : "UP");
+    debugtxt(&tpos, 14, "spos: %.2f %.2f", vec2_unpack(ctx.input.mpos));
+    debugtxt(&tpos, 14, "gpos: %.2f %.2f", vec2_unpack(screen_to_grid(ctx.input.mpos)));
 
-    if (ctx.perf.show) {
-        drawDebugText(&tpos, 14.0, "frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));
-        drawDebugText(&tpos, 14.0, "framecount: %ld", ctx.frame_count);
-        drawDebugText(&tpos, 14.0, "fps: %.1lf", dbl_rb_avg(ctx.perf.fps_rb));
+    if (ctx.perf.show_perf_in_debug) {
+        debugtxt(&tpos, 14.0, "frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));
+        debugtxt(&tpos, 14.0, "framecount: %ld", ctx.frame_count);
+        debugtxt(&tpos, 14.0, "fps: %.1lf", dbl_rb_avg(ctx.perf.fps_rb));
     }
 }
