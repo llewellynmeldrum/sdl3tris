@@ -2,6 +2,8 @@
 #include "sdlwrappers.h"
 #include "types.h"
 
+// NOTE: implementation in  "src/piecedata.c"
+
 #define PieceType_START PieceType_I_Piece
 typedef enum {
     // try hovering over (<S>k in neovim) any of the enum values!!!
@@ -16,7 +18,7 @@ typedef enum {
 } PieceType;
 #define PieceType_END PieceType_Z_Piece
 #define PieceType_COUNT (PieceType_Z_Piece + 1)
-typedef const struct PieceDef {
+typedef const struct PieceData {
     const PieceType   type;     // see PieceType
     const SDL_FColor* colors;   // contains increasing in brightness color bands for that piece
     const vec2*       offsets;  // contains grid space offsets of pieces

@@ -33,6 +33,6 @@ double TimespanSumMS(Timespan t) {
 
 void printTimespan(Timespan t) {
     // 03 m 27 s 123 ms 456 µs OR 03m27s (123 ms, 456 µs) OR 03:27:123:456
-    printf("%02ld m %02ld s %03ld ms %03ld µs\n", t.m, t.s, t.ms, t.us);
+    LOG("%02ld m %02ld s %03ld ms %03ld µs\n", t.m, t.s, t.ms, t.us);
 }
 */

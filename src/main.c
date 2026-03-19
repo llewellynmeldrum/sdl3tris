@@ -9,13 +9,15 @@
 #include "game/draw.h"
 #include "game/piecequeue.h"
 
-#include "debugtext.h"
+#include "debug_overlay.h"
+#include "logger.h"
 #include "piecedata.h"
 #include "ringbuffer.h"
 #include "sdlwrappers.h"
 #include "sugar.h"
 #include "timing.h"
 #include "types.h"
+void set_debug_overlay(void);
 
 typedef struct Cell {
     // idk
@@ -53,7 +55,7 @@ GameContext init_GameContext() {
     srand(time(NULL));
     for (int i = 0; i < PQ_CAPACITY; i++) {
         pq_push(&gtx.piecequeue, random_piece());
-        printf("%d", gtx.piecequeue.head->type);
+        // LOGLN("%d", gtx.piecequeue.head->type);
     }
     return gtx;
 }
@@ -66,6 +68,7 @@ void profileStats() {
     double fps = 1000.0 / (ft_ms);
     rb_push(ctx.perf.ft_rb, &ft_ms);
     rb_push(ctx.perf.fps_rb, &fps);
+    set_debug_overlay();
 }
 
 void drawPieceQueue(PieceQueue pq) {
@@ -104,8 +107,7 @@ SDL_AppResult SDL_AppIterate(void* _) {
     // drawPieceQueue(gtx.piecequeue);
     // drawGrid((vec2){ PLAYFIELD_GXOFFSET, 0 },
     //          (vec2){ ctx.cols - PLAYFIELD_GXOFFSET, PLAYFIELD_HEIGHT });
-    draw_debug_overlay();
-
+    drawDebugOverlay(true);
     SDL_RenderPresent(ctx.renderer);
     ctx.perf.ms_lastframe = ctx.perf.ms_thisframe;
     ctx.perf.show_perf_in_debug = false;
@@ -123,13 +125,14 @@ SDL_AppResult SDL_AppInit(void** _, int argc, char* argv[]) {
         return SDL_APP_FAILURE;
     }
 
-    if (!SDL_CreateWindowAndRenderer("cstris - window", ctx.w, ctx.h, 0, &ctx.window,
-                                     &ctx.renderer)) {
+    if (!SDL_CreateWindowAndRenderer("cstris - window", ctx.w, ctx.h, SDL_WINDOW_TRANSPARENT,
+                                     &ctx.window, &ctx.renderer)) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
     SDL_SetRenderLogicalPresentation(ctx.renderer, ctx.w, ctx.h,
                                      SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
 
     ctx.clock_freq = SDL_GetPerformanceFrequency();
     return SDL_APP_CONTINUE; /* carry on with the program! */
@@ -138,7 +141,7 @@ SDL_AppResult SDL_AppInit(void** _, int argc, char* argv[]) {
 void printmpos() {
     double x = ctx.input.s_mpos.x;
     double y = ctx.input.s_mpos.y;
-    printf("CLICK @: %.2f, %.2f\n", x, y);
+    LOG("CLICK @: %.2f, %.2f\n", x, y);
 }
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
     (void)appstate;
@@ -173,4 +176,21 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result) {
     (void)appstate;
     (void)result;
     /* SDL will clean up the window/renderer for us. */
+}
+
+void set_debug_overlay(void) {
+    overlay_reset();
+    vec2        mpos = { ctx.input.s_mpos.x, ctx.input.s_mpos.y };
+    vec2        s_mpos = screen_to_grid(mpos);
+    const char* m1str = (ctx.input.m1down ? "DOWN" : "UP");
+    OVERLAY_PRINTLN("mpos: %.4f, %.4f", mpos.x, mpos.y);
+    OVERLAY_PRINTLN("m1: %s", m1str);
+    OVERLAY_PRINTLN("spos: %.2f %.2f", vec2_unpack(ctx.input.s_mpos));
+    OVERLAY_PRINTLN("gpos: %.2f %.2f", vec2_unpack(s_mpos));
+
+    if (ctx.perf.show_perf_in_debug) {
+        OVERLAY_PRINTLN("frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));
+        OVERLAY_PRINTLN("framecount: %ld", ctx.frame_count);
+        OVERLAY_PRINTLN("fps: %.1lf", dbl_rb_avg(ctx.perf.fps_rb));
+    }
 }

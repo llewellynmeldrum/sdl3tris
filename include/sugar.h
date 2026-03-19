@@ -7,6 +7,10 @@
 
 #define vec2_unpack(p) p.x, p.y
 
+static inline vec2 rotate_vec2(vec2 a, double theta) {
+    return (vec2){ .x = a.x * cos(theta) - a.y * sin(theta),
+                   .y = a.x * sin(theta) + a.y * cos(theta) };
+}
 // piecewise min on both components
 static inline vec2 vec2_min(vec2 a, vec2 b) {
     return (vec2){

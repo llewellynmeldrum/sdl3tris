@@ -17,13 +17,13 @@ Queue q_create(const size_t element_size) {
 }
 void q_print(Queue* q, void (*print_function)(void*)) {
     QueueNode* cur = q->tail;
-    printf("[");
+    LOG("[");
     while (cur) {
         print_function(cur->data);
         cur = cur->next;
-        printf(", ");
+        LOG(", ");
     }
-    printf("]\n");
+    LOG("]\n");
 }
 
 void* q_peek(Queue* q) {

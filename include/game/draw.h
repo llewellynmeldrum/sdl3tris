@@ -4,7 +4,6 @@
 #include "sugar.h"
 
 // src/game/draw.c
-void drawPieceOrigin(vec2 g_originPos, PieceType T);
 void drawPiece(vec2 g_topLeftPos, PieceType T);
 
 void s_drawBlock(vec2 screenPos, double len, const SDL_FColor piece_colors[4]);

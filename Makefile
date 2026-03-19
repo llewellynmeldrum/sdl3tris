@@ -21,14 +21,24 @@ SRC_EXT	:=.c
 OBJ_EXT :=.o
 
 
-CC		:=	clang 
-SRC 	:=	$(wildcard $(SRC_DIR)/*$(SRC_EXT))
-SRC 	+=	$(wildcard $(SRC_DIR)/game/*$(SRC_EXT))
-OBJS 	:= 	$(patsubst $(SRC_DIR)/%$(SRC_EXT),$(OBJ_DIR)/%$(OBJ_EXT),$(SRC))
+CC		:=clang 
+SRC 	:=$(wildcard $(SRC_DIR)/*$(SRC_EXT))
+SRC 	+=$(wildcard $(SRC_DIR)/game/*$(SRC_EXT))
+OBJS 	:=$(patsubst $(SRC_DIR)/%$(SRC_EXT),$(OBJ_DIR)/%$(OBJ_EXT),$(SRC))
 
 
-# flags for the compiler only 
-CFLAGS	:=-std=c2x -Wall -Wimplicit-fallthrough -Werror -Wno-unused-parameter -Wno-unused-variable -Wno-unused -Iinclude $(shell pkg-config sdl3 --cflags)
+CFLAGS:=-std=c23 
+
+CFLAGS+=-Wall 
+CFLAGS+=-Wimplicit-fallthrough 
+CFLAGS+=-Werror 
+CFLAGS+=-Wno-unused 
+CFLAGS+=-Iinclude
+CFLAGS+=$(shell pkg-config sdl3 --cflags)
+CFLAGS+=-fno-show-column
+CFLAGS+=-fno-diagnostics-show-option
+CFLAGS+=-fdiagnostics-fixit-info
+
 
 LDFLAGS	:= 
 LDLIBS	:= $(shell pkg-config sdl3 --libs)
@@ -43,17 +53,25 @@ CFLAGS	+=$(ALLFLAGS)
 LDFLAGS+=$(ALLFLAGS)
 
 
+# COMPILE 
 $(OBJ_DIR)/%$(OBJ_EXT) : $(SRC_DIR)/%$(SRC_EXT)
 	@$(ECHO_COMP_BANNER)
 	$(CC) $(CFLAGS) -c $< -o $@ 
 
-# build executable (linking obj -> bin)
+# LINK 
 $(EXE): $(EXE_DIR) $(OBJ_DIR) $(OBJS)
 	@$(ECHO_LINK_BANNER)
 	@echo
 	@printf '  %s\n' $(CC)
-	@printf '  %s\n' $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(EXE) $(LDLIBS)
+	@printf '    %s\n' $(CFLAGS)
+	@printf '    %s\n' $(LDFLAGS)
+	@printf '    %s\n' $(OBJS)
+	@printf '\n' 
+	@printf '    %s\n' $(EXE)
+	@printf '\n' 
+	@printf '    %s\n' $(LDLIBS)
+	@printf '\n' 
+	@$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $(EXE) $(LDLIBS)
 
 # executing binary
 run: $(EXE)

@@ -1,5 +1,5 @@
-// #include "piecedata.h"
 #include "piecedata.h"
+#include "logger.h"
 #include "sdlwrappers.h"
 #include "sugar.h"
 
@@ -51,11 +51,11 @@ static const vec2 Wall_Piece_Offsets[1] = {
 #define CONCAT(a, b) a##b
 
 #define DECL_PIECE(T, color, ox, oy)                                                               \
-    static const PieceDef PieceDef_##T = { .type = PieceType_##T,                                  \
-                                           .colors = color,                                        \
-                                           .l_origin = { ox, oy },                                 \
-                                           .offsets_len = ARRLEN(CONCAT(T, _Offsets)),             \
-                                           .offsets = CONCAT(T, _Offsets) }
+    static const PieceData PieceData_##T = { .type = PieceType_##T,                                \
+                                             .colors = color,                                      \
+                                             .l_rot_origin = { ox, oy },                           \
+                                             .offsets_len = ARRLEN(CONCAT(T, _Offsets)),           \
+                                             .offsets = CONCAT(T, _Offsets) }
 
 DECL_PIECE(Wall_Piece, grey, 0, 1);
 DECL_PIECE(I_Piece, cyan, 0, 1);
@@ -69,10 +69,10 @@ DECL_PIECE(Z_Piece, red, 0, 1);
 // this is just used to make writing them easier, all are expanded
 #define unwrap(T)                                                                                  \
     case PieceType_##T:                                                                            \
-        return &(CONCAT(PieceDef_, T));                                                            \
+        return &(CONCAT(PieceData_, T));                                                           \
         break
 
-const PieceDef* get_piece_def(PieceType T) {
+const PieceData* get_piece_def(PieceType T) {
     switch (T) {
         unwrap(I_Piece);
         unwrap(Wall_Piece);
@@ -83,7 +83,7 @@ const PieceDef* get_piece_def(PieceType T) {
         unwrap(T_Piece);
         unwrap(Z_Piece);
     default:
-        fprintf(stderr, "Unimplemented, do I_PIECE. Expect a segfault");
+        LOGERR("Unimplemented, do I_PIECE. Expect a segfault");
         return NULL;
         break;
     }

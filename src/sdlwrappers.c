@@ -10,7 +10,10 @@ SDLContext init_ctx() {
 
     return (SDLContext){
         .input = {
-            .mgpos = {}
+            .m1down = false,
+            .m2down = false,
+            .g_mpos = {},
+            .s_mpos = {}
         },
 
         .perf = {
