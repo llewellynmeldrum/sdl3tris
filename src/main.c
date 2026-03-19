@@ -72,7 +72,7 @@ void drawPieceQueue(PieceQueue pq) {
     PieceQueueNode* cur = pq.head;
     vec2            g_queue_pos = { ctx.cols - PLAYFIELD_GXOFFSET + 1, 2 };
     for (int i = 0; i < pq.size; i++) {
-        PieceDef* pd = get_piece_def(cur->type);
+        PieceData* pd = get_piece_def(cur->type);
         drawPiece(g_queue_pos, cur->type);
         g_queue_pos.y += 4;
         cur = cur->prev;  // moving down the queue towards the back
@@ -85,10 +85,26 @@ SDL_AppResult SDL_AppIterate(void* _) {
     SDL_RenderClear(ctx.renderer);
 
     drawWalls();
-    drawPieceQueue(gtx.piecequeue);
+    {
+        vec2 g_tlpos = { 2, 2 };
+        for (PieceType T = 0; T < 4; T++) {
+            drawPiece(g_tlpos, T);
+            g_tlpos.x += 4;
+        }
+    }
+    {
+        // figure out transparency it would be nice for debugging maybe
+        // anyway figure out the origins and get rotation down.
+        vec2 g_tlpos = { 2, 8 };
+        for (PieceType T = 4; T < PieceType_COUNT; T++) {
+            drawPiece(g_tlpos, T);
+            g_tlpos.x += 4;
+        }
+    }
+    // drawPieceQueue(gtx.piecequeue);
     // drawGrid((vec2){ PLAYFIELD_GXOFFSET, 0 },
     //          (vec2){ ctx.cols - PLAYFIELD_GXOFFSET, PLAYFIELD_HEIGHT });
-    drawDebugWindow();
+    draw_debug_overlay();
 
     SDL_RenderPresent(ctx.renderer);
     ctx.perf.ms_lastframe = ctx.perf.ms_thisframe;
@@ -96,10 +112,6 @@ SDL_AppResult SDL_AppIterate(void* _) {
     return SDL_APP_CONTINUE;
 }
 
-void print_string(void* input) {
-    const char* s = input;
-    printf("'%s'", s);
-}
 SDL_AppResult SDL_AppInit(void** _, int argc, char* argv[]) {
     ctx = init_ctx();
     gtx = init_GameContext();
@@ -124,8 +136,8 @@ SDL_AppResult SDL_AppInit(void** _, int argc, char* argv[]) {
 }
 
 void printmpos() {
-    double x = ctx.input.mpos.x;
-    double y = ctx.input.mpos.y;
+    double x = ctx.input.s_mpos.x;
+    double y = ctx.input.s_mpos.y;
     printf("CLICK @: %.2f, %.2f\n", x, y);
 }
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
@@ -141,8 +153,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
         break;
 
     case SDL_EVENT_MOUSE_MOTION:
-        ctx.input.mpos = (vec2){ event->motion.x, event->motion.y };
-        ctx.input.mgpos = snapToGrid((vec2){ round(event->motion.x), round(event->motion.y) });
+        ctx.input.s_mpos = (vec2){ event->motion.x, event->motion.y };
+        ctx.input.g_mpos = snapToGrid((vec2){ round(event->motion.x), round(event->motion.y) });
         break;
 
     case SDL_EVENT_QUIT:  //

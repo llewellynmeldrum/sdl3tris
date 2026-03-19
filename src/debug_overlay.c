@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "game/draw.h"
 #include "ringbuffer.h"
 #include "sdlwrappers.h"
 #include "sugar.h"
@@ -32,11 +33,12 @@ void debugtxt(vec2* pos, float txt_scale, const char* fmt, ...) {
 
 void drawDebugWindow() {
     vec2 tpos = { 4, 4 };
-    vec2 mpos = { ctx.input.mpos.x, ctx.input.mpos.y };
+    vec2 mpos = { ctx.input.s_mpos.x, ctx.input.s_mpos.y };
+    vec2 s_mpos = screen_to_grid(mpos);
     debugtxt(&tpos, 14.0, "mpos: %.4f, %.4f", mpos.x, mpos.y);
     debugtxt(&tpos, 14.0, "m1: %s", ctx.input.m1down ? "DOWN" : "UP");
-    debugtxt(&tpos, 14, "spos: %.2f %.2f", vec2_unpack(ctx.input.mpos));
-    debugtxt(&tpos, 14, "gpos: %.2f %.2f", vec2_unpack(screen_to_grid(ctx.input.mpos)));
+    debugtxt(&tpos, 14, "spos: %.2f %.2f", vec2_unpack(ctx.input.s_mpos));
+    debugtxt(&tpos, 14, "gpos: %.2f %.2f", vec2_unpack(screen_to_grid(ctx.input.s_mpos)));
 
     if (ctx.perf.show_perf_in_debug) {
         debugtxt(&tpos, 14.0, "frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));

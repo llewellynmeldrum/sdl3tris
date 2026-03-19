@@ -1,4 +1,3 @@
-
 #include "game/draw.h"
 #include "piecedata.h"
 #include "primitives.h"
@@ -15,48 +14,49 @@
 // The origin point' is highlighted as '▒'
 // It might be wise to refer to tetrominoes/pieces by their origin point.
 // Thus the draw commands should probably take this origin?
-void g_drawBlock(vec2 gridPos, double len, const SDL_FColor piece_colors[4]);
+static inline void g_drawBlock(vec2 gridPos, double len, const SDL_FColor piece_colors[4]);
+static inline void drawTetro(vec2 s_pos, const vec2* offsets, const SDL_FColor* colors);
 
 // #define DRAW_BOUNDING_BOX
 void drawTetroBounds(PieceType T, const vec2* offsets, const vec2 g_topLeftPos) {
 #define OFFSET_LEN 4
+    // find the min and max local coords in offsets
     vec2 l_min = {};
     vec2 l_max = {};
     for (int i = 0; i < OFFSET_LEN; i++) {
-        vec2 offset = offsets[i];
-        l_min.x = fmin(l_min.x, offset.x);
-        l_min.y = fmin(l_min.y, offset.y);
-        l_max.x = fmax(l_max.x, offset.x);
-        l_max.y = fmax(l_max.y, offset.y);
+        l_min = vec2_min(l_min, offsets[i]);
+        l_max = vec2_max(l_max, offsets[i]);
     }
-    l_min.x--;
-    l_min.y--;
-    l_max.x++;
-    l_max.y++;  // local to grid = g_pos+local
 
-    vec2 g_min = vec2_add(l_min, g_topLeftPos);
-    vec2 g_max = vec2_add(l_max, g_topLeftPos);
+    // we want the 'outline'
+    {
+        vec2 _one = { 1, 1 };
+        l_min = vec2_sub(l_min, _one);
+        l_max = vec2_add(l_max, _one);
+    }
 
-    if (g_min.x == g_max.x)
-        g_max.x++;
+    vec2 g_min = local_to_grid(l_min, g_topLeftPos);
+    vec2 g_max = local_to_grid(l_max, g_topLeftPos);
+
     printf("%lf,%lf, %lf,%lf\n", vec2_unpack(g_min), vec2_unpack(g_max));
-    PieceDef* pd = get_piece_def(T);
-    vec2      g_origin = vec2_add(g_topLeftPos, pd->l_origin);
+
+    PieceData* pd = get_piece_def(T);
+    vec2       g_rot_origin = vec2_add(g_topLeftPos, pd->l_rot_origin);
     //    drawGrid(g_min, g_max);
     g_drawBlock(g_max, BLOCK_SZ, grey);
     g_drawBlock(g_min, BLOCK_SZ, grey);
-    g_drawBlock(g_origin, BLOCK_SZ, WHITE);
+    g_drawBlock(g_rot_origin, BLOCK_SZ, WHITE);
 }
 void drawPiece(vec2 g_topLeftPos, PieceType T) {
-    PieceDef* piece = get_piece_def(T);
-    vec2      s_pos = vec2_mul(g_topLeftPos, BLOCK_SZ);
+    PieceData* piece = get_piece_def(T);
+    vec2       s_pos = vec2_mul(g_topLeftPos, BLOCK_SZ);
     drawTetro(s_pos, piece->offsets, piece->colors);
     drawTetroBounds(T, piece->offsets, g_topLeftPos);
 }
 void drawPieceOrigin(vec2 g_originPos, PieceType T) {
-    PieceDef* piece = get_piece_def(T);
-    vec2      g_topLeftPos = vec2_sub(g_originPos, piece->l_origin);
-    vec2      s_pos = vec2_mul(g_topLeftPos, BLOCK_SZ);
+    PieceData* piece = get_piece_def(T);
+    vec2       g_topLeftPos = vec2_sub(g_originPos, piece->l_rot_origin);
+    vec2       s_pos = vec2_mul(g_topLeftPos, BLOCK_SZ);
     drawTetro(s_pos, piece->offsets, piece->colors);
     drawTetroBounds(T, piece->offsets, g_topLeftPos);
 }
@@ -79,7 +79,7 @@ void drawTetro(vec2 s_pos, const vec2* offsets, const SDL_FColor* colors) {
 
 void drawWalls() {
     return;
-    PieceDef* wall_piece = get_piece_def(PieceType_Wall_Piece);
+    PieceData* wall_piece = get_piece_def(PieceType_Wall_Piece);
     // draw floor
     {
         vec2 o = { 0, ctx.rows - PLAYFIELD_GYOFFSET };
@@ -171,79 +171,25 @@ void s_drawBlock(vec2 screenPos, double len, const SDL_FColor piece_colors[4]) {
         DrawQuad(quad_verts, piece_colors[0]);
     }
 }
-void g_drawBlock(vec2 gridPos, double len, const SDL_FColor piece_colors[4]) {
-    vec2   screenPos = vec2_mul(gridPos, BLOCK_SZ);
-    double bord = len * 0.14;  // border width
-    {
-        // MAIN QUAD
-        vec2 quad_verts[] = {
-            screenPos,
-            { screenPos.x + len, screenPos.y },
-            { screenPos.x + len, screenPos.y + len },
-            { screenPos.x, screenPos.y + len },
-        };
-        DrawQuad(quad_verts, piece_colors[2]);
-    }
-    {
-        // LEFT EDGE
-        vec2 o = { screenPos.x, screenPos.y };
-        vec2 quad_verts[] = {
-            o,
-            { o.x + bord, o.y + bord },
-            { o.x + bord, o.y + len - bord },
-            { o.x, o.y + len },
-        };
-        DrawQuad(quad_verts, piece_colors[1]);
-    }
-    {
-        // RIGHT EDGE
-        vec2 o = { screenPos.x + len - bord, screenPos.y };
-        vec2 quad_verts[] = {
-            { o.x, o.y + bord },
-            { o.x + bord, o.y },
-            { o.x + bord, o.y + len },
-            { o.x, o.y + len - bord },
-        };
-        DrawQuad(quad_verts, piece_colors[1]);
-    }
-    {
-        // TOP EDGE
-        vec2 o = { screenPos.x, screenPos.y };
-        vec2 quad_verts[] = {
-            { o.x, o.y },
-            { o.x + len, o.y },
-            { o.x + len - bord, o.y + bord },
-            { o.x + bord, o.y + bord },
-        };
-        DrawQuad(quad_verts, piece_colors[3]);
-    }
-    {
-        // BOT EDGE
-        vec2 o = { screenPos.x, screenPos.y + len };
-        vec2 quad_verts[] = {
-            { o.x, o.y },
-            { o.x + bord, o.y - bord },
-            { o.x + len - bord, o.y - bord },
-            { o.x + len, o.y },
-        };
-        DrawQuad(quad_verts, piece_colors[0]);
-    }
+static inline void g_drawBlock(vec2 g_topLeftPos, double extent, const SDL_FColor piece_colors[4]) {
+    vec2 s_topLeftPos = grid_to_screen(g_topLeftPos);
+    s_drawBlock(s_topLeftPos, extent, piece_colors);
 }
-void drawGrid(vec2 tl, vec2 br) {
-    u64 width = br.x - tl.x;
-    u64 height = br.y - tl.y;
+void drawGrid(vec2 g_min, vec2 g_max) {
+    u64 width = g_max.x - g_min.x;
+    u64 height = g_max.y - g_min.y;
 
     printf("%llu\n", height);
-    printf("%lf,%lf, %lf,%lf\n", vec2_unpack(tl), vec2_unpack(br));
+    printf("%lf,%lf, %lf,%lf\n", vec2_unpack(g_min), vec2_unpack(g_max));
     printf("%llu\n", width);
     SDL_FColor previous_color;
     getcolor(previous_color);
-    setcolor(gr(128));
+    setcolor(GREY(128));
 
     {
         // horizontal lines
-        vec2 start = { tl.x, tl.y };
-        vec2 end = { tl.x + width, tl.y };
+        vec2 start = { g_min.x, g_min.y };
+        vec2 end = { g_min.x + width, g_min.y };
         for (int y = 1; y < height; y++) {
             start.y += 1;
             end.y += 1;
@@ -254,8 +200,8 @@ void drawGrid(vec2 tl, vec2 br) {
     }
     {
         // vertical lines
-        vec2 start = { tl.x, tl.y };
-        vec2 end = { tl.x, tl.y + height };
+        vec2 start = { g_min.x, g_min.y };
+        vec2 end = { g_min.x, g_min.y + height };
         for (int x = 1; x < width; x++) {
             start.x += 1;
             end.x += 1;

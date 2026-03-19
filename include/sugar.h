@@ -6,24 +6,45 @@
 #include <stdlib.h>
 
 #define vec2_unpack(p) p.x, p.y
+
+// piecewise min on both components
+static inline vec2 vec2_min(vec2 a, vec2 b) {
+    return (vec2){
+        .x = fmin(a.x, b.x),
+        .y = fmin(a.y, b.y),
+    };
+}
+
+// piecewise max on both components
+static inline vec2 vec2_max(vec2 a, vec2 b) {
+    return (vec2){
+        .x = fmax(a.x, b.x),
+        .y = fmax(a.y, b.y),
+    };
+}
+// piecewise subtraction between two vectors
 #define vec2_sub(a, b)                                                                             \
     (vec2) {                                                                                       \
         a.x - b.x, a.y - b.y                                                                       \
     }
+// piecewise addition between two vectors
 #define vec2_add(a, b)                                                                             \
     (vec2) {                                                                                       \
         a.x + b.x, a.y + b.y                                                                       \
     }
+// piecewise mult between a vector and a scalar
 #define vec2_mul(v, s)                                                                             \
     (vec2) {                                                                                       \
         v.x *s, v.y *s                                                                             \
     }
+
+// regular real division
 #define vec2_div(v, s)                                                                             \
     (vec2) {                                                                                       \
         v.x / s, v.y / s                                                                           \
     }
 
-// integer
+// truncating integer division
 #define vec2_idiv(v, s)                                                                            \
     (vec2) {                                                                                       \
         (i64) v.x / (i64)s, (i64)v.y / (i64)s                                                      \
@@ -35,11 +56,7 @@
 #define LEN(expr) sizeof(expr)  // been using too much python
 
 #define bound(val, lo, hi) (fmin(hi, (fmax(lo, val))))
-// TODO: change to type generic version
 
-static inline vec2 screen_to_grid(vec2 s_pos) {
-    return vec2_idiv(s_pos, BLOCK_SZ);
-}
 static inline u64 urand(u64 min, u64 max) {
     u64 range = max - min;
     assert(range >= 0 || "Bro");

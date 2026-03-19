@@ -6,8 +6,8 @@
 typedef struct {
     bool m1down;
     bool m2down;
-    vec2 mpos;   // raw mouse position, updated on mouse move event
-    vec2 mgpos;  // mouse position snapped to grid.
+    vec2 s_mpos;  // raw mouse position, updated on mouse move event
+    vec2 g_mpos;  // mouse position snapped to grid.
 } Input;
 
 typedef struct {
@@ -47,7 +47,7 @@ void       drawVertexArray(VertexArray arr);
 SDLContext init_ctx();
 
 // SDL_FColor from 0->255 grey value.
-#define gr(gr) (SDL_FColor){ gr / 255.0, gr / 255.0, gr / 255.0, 1.0 }
+#define GREY(gr) (SDL_FColor){ gr / 255.0, gr / 255.0, gr / 255.0, 1.0 }
 
 // SDL_FColor from 3x 0->255 rgb values
 #define rgb(r, g, b) (SDL_FColor){ r / 255.0, g / 255.0, b / 255.0, 1.0 }

@@ -21,10 +21,10 @@ typedef const struct PieceDef {
     const SDL_FColor* colors;   // contains increasing in brightness color bands for that piece
     const vec2*       offsets;  // contains grid space offsets of pieces
     const size_t      offsets_len;
-    const vec2        l_origin;  // describes the origin of the piece in piece space
-} PieceDef;
+    const vec2        l_rot_origin;  // describes the origin of the piece in piece space
+} PieceData;
 
-const PieceDef*         get_piece_def(PieceType T);
+const PieceData*        get_piece_def(PieceType T);
 static const SDL_FColor WHITE[] = {
     rgb(200, 200, 200), rgb(220, 220, 220), rgb(230, 230, 230),
     rgb(240, 240, 240), rgb(250, 255, 255),
