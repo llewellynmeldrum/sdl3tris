@@ -1,7 +1,8 @@
 #include "piecedata.h"
 #include "logger.h"
-#include "sdlwrappers.h"
 #include "sugar.h"
+
+#define CONCAT(a, b) a##b
 
 static const vec2 I_Piece_Offsets[4] = {
     { 0, 0 },
@@ -48,14 +49,13 @@ static const vec2 Z_Piece_Offsets[] = {
 static const vec2 Wall_Piece_Offsets[1] = {
     { 0, 0 },
 };
-#define CONCAT(a, b) a##b
 
 #define DECL_PIECE(T, color, ox, oy)                                                               \
     static const PieceData PieceData_##T = { .type = PieceType_##T,                                \
-                                             .colors = color,                                      \
+                                             .colorscheme = color,                                 \
                                              .l_rot_origin = { ox, oy },                           \
                                              .offsets_len = ARRLEN(CONCAT(T, _Offsets)),           \
-                                             .offsets = CONCAT(T, _Offsets) }
+                                             .l_blockOffsets = CONCAT(T, _Offsets) }
 
 DECL_PIECE(Wall_Piece, grey, 0, 1);
 DECL_PIECE(I_Piece, cyan, 0, 1);
@@ -72,7 +72,7 @@ DECL_PIECE(Z_Piece, red, 0, 1);
         return &(CONCAT(PieceData_, T));                                                           \
         break
 
-const PieceData* get_piece_def(PieceType T) {
+const PieceData* get_piece_data(PieceType T) {
     switch (T) {
         unwrap(I_Piece);
         unwrap(Wall_Piece);
@@ -83,7 +83,7 @@ const PieceData* get_piece_def(PieceType T) {
         unwrap(T_Piece);
         unwrap(Z_Piece);
     default:
-        LOGERR("Unimplemented, do I_PIECE. Expect a segfault");
+        LOGERR("Unimplemented, expect a segfault");
         return NULL;
         break;
     }

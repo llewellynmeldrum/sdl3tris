@@ -14,19 +14,19 @@ typedef enum {
     PieceType_S_Piece,     // --->▗▛ <---
     PieceType_T_Piece,     // ---> ▜▛ <---
     PieceType_Z_Piece,     // --->▝▙ <---
-    PieceType_Wall_Piece,  // --->▝▙ <---
+    PieceType_Wall_Piece,  // ---> WALL <---
 } PieceType;
 #define PieceType_END PieceType_Z_Piece
 #define PieceType_COUNT (PieceType_Z_Piece + 1)
 typedef const struct PieceData {
-    const PieceType   type;     // see PieceType
-    const SDL_FColor* colors;   // contains increasing in brightness color bands for that piece
-    const vec2*       offsets;  // contains grid space offsets of pieces
+    const PieceType   type;         // see PieceType
+    const SDL_FColor* colorscheme;  // contains increasing in brightness color bands for that piece
+    const vec2*       l_blockOffsets;  // contains grid space offsets of pieces
+    const vec2        l_rot_origin;    // describes the origin of the piece in piece space
     const size_t      offsets_len;
-    const vec2        l_rot_origin;  // describes the origin of the piece in piece space
 } PieceData;
 
-const PieceData*        get_piece_def(PieceType T);
+const PieceData*        get_piece_data(PieceType T);
 static const SDL_FColor WHITE[] = {
     rgb(200, 200, 200), rgb(220, 220, 220), rgb(230, 230, 230),
     rgb(240, 240, 240), rgb(250, 255, 255),

@@ -10,8 +10,12 @@ SDLContext init_ctx() {
 
     return (SDLContext){
         .input = {
-            .m1down = false,
-            .m2down = false,
+            .m1_pressed = false,
+            .m2_pressed = false,
+            .up_arrow_pressed = false,
+            .down_arrow_pressed = false,
+            .left_arrow_pressed = false,
+            .right_arrow_pressed = false,
             .g_mpos = {},
             .s_mpos = {}
         },
@@ -23,7 +27,7 @@ SDLContext init_ctx() {
         },
 
         .draw = {
-            .clear_color = rgba(0.0, 0.0, 0.0, 1.0)
+            .clear_color = rgba(0.0, 0.0, 0.0, 255.0)
         },
         .window = NULL,
         .renderer = NULL,

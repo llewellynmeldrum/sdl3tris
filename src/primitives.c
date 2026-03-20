@@ -14,7 +14,7 @@ void render_quad(SDL_Vertex* vertices) {
     SDL_RenderGeometry(ctx.renderer, NULL, vertices, QUAD_VERT_COUNT, quad_indices,
                        ARRLEN(quad_indices));
 }
-void make_quad(vec2* points, SDL_FColor color) {
+void s_drawQuad(vec2* points, SDL_FColor color) {
     SDL_Vertex vertices[QUAD_VERT_COUNT] = (SDL_Vertex[]){
         VTX(color, points[0].x, points[0].y),
         VTX(color, points[1].x, points[1].y),

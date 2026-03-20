@@ -75,8 +75,8 @@ void drawPieceQueue(PieceQueue pq) {
     PieceQueueNode* cur = pq.head;
     vec2            g_queue_pos = { ctx.cols - PLAYFIELD_GXOFFSET + 1, 2 };
     for (int i = 0; i < pq.size; i++) {
-        PieceData* pd = get_piece_def(cur->type);
-        drawPiece(g_queue_pos, cur->type);
+        PieceData* pd = get_piece_data(cur->type);
+        g_drawPiece(g_queue_pos, cur->type);
         g_queue_pos.y += 4;
         cur = cur->prev;  // moving down the queue towards the back
     }
@@ -91,7 +91,7 @@ SDL_AppResult SDL_AppIterate(void* _) {
     {
         vec2 g_tlpos = { 2, 2 };
         for (PieceType T = 0; T < 4; T++) {
-            drawPiece(g_tlpos, T);
+            g_drawPiece(g_tlpos, T);
             g_tlpos.x += 4;
         }
     }
@@ -100,17 +100,17 @@ SDL_AppResult SDL_AppIterate(void* _) {
         // anyway figure out the origins and get rotation down.
         vec2 g_tlpos = { 2, 8 };
         for (PieceType T = 4; T < PieceType_COUNT; T++) {
-            drawPiece(g_tlpos, T);
+            g_drawPiece(g_tlpos, T);
             g_tlpos.x += 4;
         }
     }
     // drawPieceQueue(gtx.piecequeue);
+    // // playgrid:
     // drawGrid((vec2){ PLAYFIELD_GXOFFSET, 0 },
-    //          (vec2){ ctx.cols - PLAYFIELD_GXOFFSET, PLAYFIELD_HEIGHT });
+    //         (vec2){ ctx.cols - PLAYFIELD_GXOFFSET, PLAYFIELD_HEIGHT });
     drawDebugOverlay(true);
     SDL_RenderPresent(ctx.renderer);
     ctx.perf.ms_lastframe = ctx.perf.ms_thisframe;
-    ctx.perf.show_perf_in_debug = false;
     return SDL_APP_CONTINUE;
 }
 
@@ -143,21 +143,40 @@ void printmpos() {
     double y = ctx.input.s_mpos.y;
     LOG("CLICK @: %.2f, %.2f\n", x, y);
 }
+// clang-format off
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
     (void)appstate;
     switch (event->type) {
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        ctx.input.m1down = (event->button.button == 1) ? true : ctx.input.m1down, printmpos();
-        ctx.input.m2down = (event->button.button == 2) ? true : ctx.input.m2down;
+        ctx.input.m1_pressed = (event->button.button == 1) ? true : ctx.input.m1_pressed,
+        printmpos();
+        ctx.input.m2_pressed = (event->button.button == 2) ? true : ctx.input.m2_pressed;
         break;
     case SDL_EVENT_MOUSE_BUTTON_UP:
-        ctx.input.m1down = (event->button.button == 1) ? false : ctx.input.m1down;
-        ctx.input.m2down = (event->button.button == 2) ? false : ctx.input.m2down;
+        ctx.input.m1_pressed = (event->button.button == 1) ? false : ctx.input.m1_pressed;
+        ctx.input.m2_pressed = (event->button.button == 2) ? false : ctx.input.m2_pressed;
         break;
 
     case SDL_EVENT_MOUSE_MOTION:
         ctx.input.s_mpos = (vec2){ event->motion.x, event->motion.y };
         ctx.input.g_mpos = snapToGrid((vec2){ round(event->motion.x), round(event->motion.y) });
+        break;
+
+    case SDL_EVENT_KEY_DOWN:
+        switch(event->key.key){
+        case SDLK_UP: ctx.input.up_arrow_pressed = true; break;
+        case SDLK_DOWN: ctx.input.down_arrow_pressed = true; break;
+        case SDLK_LEFT: ctx.input.left_arrow_pressed = true; break;
+        case SDLK_RIGHT: ctx.input.right_arrow_pressed = true; break;
+        }
+        break;
+    case SDL_EVENT_KEY_UP:
+        switch(event->key.key){
+        case SDLK_UP:       ctx.input.up_arrow_pressed =    false; break;
+        case SDLK_DOWN:     ctx.input.down_arrow_pressed =  false; break;
+        case SDLK_LEFT:     ctx.input.left_arrow_pressed =  false; break;
+        case SDLK_RIGHT:    ctx.input.right_arrow_pressed = false; break;
+        }
         break;
 
     case SDL_EVENT_QUIT:  //
@@ -171,6 +190,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
     return SDL_APP_CONTINUE;
 }
 
+// clang-format on
+//
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void* appstate, SDL_AppResult result) {
     (void)appstate;
@@ -182,11 +203,14 @@ void set_debug_overlay(void) {
     overlay_reset();
     vec2        mpos = { ctx.input.s_mpos.x, ctx.input.s_mpos.y };
     vec2        s_mpos = screen_to_grid(mpos);
-    const char* m1str = (ctx.input.m1down ? "DOWN" : "UP");
+    const char* m1str = (ctx.input.m1_pressed ? "DOWN" : "UP");
     OVERLAY_PRINTLN("mpos: %.4f, %.4f", mpos.x, mpos.y);
     OVERLAY_PRINTLN("m1: %s", m1str);
     OVERLAY_PRINTLN("spos: %.2f %.2f", vec2_unpack(ctx.input.s_mpos));
     OVERLAY_PRINTLN("gpos: %.2f %.2f", vec2_unpack(s_mpos));
+    OVERLAY_PRINTLN("m1:%d|m2:%d|UP:%d|DN:%d|LE:%d|RI:%d", ctx.input.m1_pressed,
+                    ctx.input.m2_pressed, ctx.input.up_arrow_pressed, ctx.input.down_arrow_pressed,
+                    ctx.input.left_arrow_pressed, ctx.input.right_arrow_pressed);
 
     if (ctx.perf.show_perf_in_debug) {
         OVERLAY_PRINTLN("frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));

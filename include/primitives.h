@@ -1,4 +1,4 @@
-#pragma once
+#pragma once  // src/primitives.c
 #include "sdlwrappers.h"
 #define QUAD_VERT_COUNT 4
 #define QUAD_IDX_COUNT 6
@@ -7,4 +7,4 @@
 #define DrawQuad(vertices, color) make_quad(vertices, color)
 
 void draw_triangle(SDL_Vertex* vertices, size_t vert_count);
-void make_quad(vec2* points, SDL_FColor color);
+void s_drawQuad(vec2* points, SDL_FColor color);

@@ -1,11 +1,15 @@
 #pragma once
 #include "ringbuffer.h"
 #include "types.h"
-#include <SDL3/SDL.h>
+#include "vec2.h"
 
 typedef struct {
-    bool m1down;
-    bool m2down;
+    bool m1_pressed;
+    bool m2_pressed;
+    bool up_arrow_pressed;
+    bool down_arrow_pressed;
+    bool left_arrow_pressed;
+    bool right_arrow_pressed;
     vec2 s_mpos;  // raw mouse position, updated on mouse move event
     vec2 g_mpos;  // mouse position snapped to grid.
 } Input;
@@ -35,6 +39,7 @@ typedef struct SDLContext {
     double h;
     i64    cols;
     i64    rows;
+    int    rotation_index;  // temporary
 } SDLContext;
 extern SDLContext ctx;  // global context, i dont need multiple.
 
