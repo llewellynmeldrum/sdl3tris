@@ -41,7 +41,8 @@ typedef enum Direction {
 
 typedef struct Piece {
     PieceData* pd;
-    Direction  facing;
+    Direction  rotation;
+    vec2       g_pos;
 } Piece;
 
 typedef struct GameContext {
@@ -51,6 +52,7 @@ typedef struct GameContext {
     GridState  gridstate;
     double     droptimer;
     Piece      fallingPiece;
+    size_t     dropDelay;
 } GameContext;
 
 PieceType random_piece() {
@@ -66,7 +68,8 @@ GameContext init_GameContext() {
         .tick = 0,
         .droptimer = 5000.0,  // ms until a new piece is dropped
                               // starts counting down when there is no piece in the air
-        .fallingPiece = {},
+        .fallingPiece = { .g_pos = { 5, 0 } },
+        .dropDelay = 20,  // how many ticks inbetween a drop
     };
     srand(time(NULL));
     for (int i = 0; i < PQ_CAPACITY; i++) {
@@ -107,23 +110,37 @@ void drawPieceQueue(PieceQueue pq) {
     */
 }
 
+size_t      tick_last_frame = 0;
 GameContext updateGameContext(i64 dt_ms, GameContext gtx) {
     // go through state, all that other shit and build new frames gamecontext based on inputs
     // handle input
 
-    ctx.input.key_repeat_delay_ms_remaining -= dt_ms;
+    gtx.tick = (size_t)(ms_since_start() / (50.0));  // 20 tps
+    if (gtx.tick != tick_last_frame) {
+        LOGLN("%zu %% %zu = %zu", gtx.tick, gtx.dropDelay, gtx.tick % gtx.dropDelay);
+        if (gtx.tick % gtx.dropDelay == 0) {
+            gtx.fallingPiece.g_pos.y++;
+        }
+    }
+    tick_last_frame = gtx.tick;
 
     if (ctx.input.rotate_left_pressed) {
-        gtx.fallingPiece.facing++;
-        gtx.fallingPiece.facing %= 4;
-        LOG("%d\n", gtx.fallingPiece.facing);
+        gtx.fallingPiece.rotation++;
+        gtx.fallingPiece.rotation %= 4;
         ctx.input.rotate_left_pressed = false;
     }
     if (ctx.input.rotate_right_pressed) {
-        gtx.fallingPiece.facing--;
-        gtx.fallingPiece.facing %= 4;
-        LOG("%d\n", gtx.fallingPiece.facing);
+        gtx.fallingPiece.rotation--;
+        gtx.fallingPiece.rotation %= 4;
         ctx.input.rotate_right_pressed = false;
+    }
+    if (ctx.input.move_left_pressed) {
+        gtx.fallingPiece.g_pos.x--;
+        ctx.input.move_left_pressed = false;
+    }
+    if (ctx.input.move_right_pressed) {
+        gtx.fallingPiece.g_pos.x++;
+        ctx.input.move_right_pressed = false;
     }
     ctx.input.key_repeat_delay_ms_remaining = ctx.input.PRESS_DELAY_MS;
     return gtx;
@@ -135,23 +152,8 @@ SDL_AppResult SDL_AppIterate(void* _) {
 
     setcolor(ctx.draw.clear_color);
     SDL_RenderClear(ctx.renderer);
-
-    vec2 g_tlpos = { 1, 1 };
-    for (PieceType T = 0; T < PieceType_COUNT; T++) {
-        PieceData* pd = get_piece_data(T);
-        g_tlpos.x = 1;
-        for (int rotation = 0; rotation < ROTATION_COUNT; rotation++) {
-            g_drawPiece(g_tlpos, T, rotation);
-            g_tlpos.x += pd->l_boundingBox.width;
-            //            g_drawBlock(g_tlpos, BLOCK_SZ, grey);  // walls
-            g_tlpos.x += 1;
-        }
-
-        g_tlpos.y += pd->l_boundingBox.height;
-        //       g_drawBlock(g_tlpos, BLOCK_SZ, grey);  // walls
-        g_tlpos.y += 1;
-    }
-    // drawDebugOverlay(true);
+    g_drawPiece(gtx.fallingPiece.g_pos, PieceType_I_Piece, gtx.fallingPiece.rotation);
+    drawDebugOverlay(true);
     SDL_RenderPresent(ctx.renderer);
     ctx.perf.ms_lastframe = ctx.perf.ms_thisframe;
     return SDL_APP_CONTINUE;
@@ -177,6 +179,8 @@ SDL_AppResult SDL_AppInit(void** _, int argc, char* argv[]) {
     SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
 
     ctx.clock_freq = SDL_GetPerformanceFrequency();
+    ctx.ms_at_start = get_current_ms();
+    //    SDL_SetRenderVSync(ctx.renderer, 1);
     return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 
@@ -208,10 +212,12 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event) {
 
     case SDL_EVENT_KEY_DOWN:
         switch(event->key.key){
-        case SDLK_UP: ctx.input.slow_drop_pressed = true; break;
-        case SDLK_DOWN: ctx.input.fast_drop_pressed = true; break;
-        case SDLK_LEFT: ctx.input.rotate_left_pressed = true; break;
-        case SDLK_RIGHT: ctx.input.rotate_right_pressed = true; break;
+        case SDLK_S: ctx.input.slow_drop_pressed = true; break;
+        case SDLK_W: ctx.input.fast_drop_pressed = true; break;
+        case SDLK_A: ctx.input.rotate_left_pressed = true; break;
+        case SDLK_D: ctx.input.rotate_right_pressed = true; break;
+        case SDLK_LEFT: ctx.input.move_left_pressed= true; break;
+        case SDLK_RIGHT: ctx.input.move_right_pressed= true; break;
         }
         break;
     case SDL_EVENT_KEY_UP:
@@ -252,9 +258,7 @@ void set_debug_overlay(void) {
     OVERLAY_PRINTLN("m1: %s", m1str);
     OVERLAY_PRINTLN("spos: %.2f %.2f", vec2_unpack(ctx.input.s_mpos));
     OVERLAY_PRINTLN("gpos: %.2f %.2f", vec2_unpack(s_mpos));
-    OVERLAY_PRINTLN("m1:%d|m2:%d|UP:%d|DN:%d|LE:%d|RI:%d", ctx.input.m1_pressed,
-                    ctx.input.m2_pressed, ctx.input.slow_drop_pressed, ctx.input.fast_drop_pressed,
-                    ctx.input.rotate_left_pressed, ctx.input.rotate_right_pressed);
+    OVERLAY_PRINTLN("tick: %zu", gtx.tick);
 
     if (ctx.perf.show_perf_in_debug) {
         OVERLAY_PRINTLN("frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));

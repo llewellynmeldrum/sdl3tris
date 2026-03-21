@@ -56,6 +56,11 @@ LDFLAGS+=$(ALLFLAGS)
 # COMPILE 
 $(OBJ_DIR)/%$(OBJ_EXT) : $(SRC_DIR)/%$(SRC_EXT)
 	@$(ECHO_COMP_BANNER)
+	@echo
+	@printf '  %s\n' $(CC)
+	@printf '    %s\n' $(CFLAGS)
+	@printf '    %s\n'  $@
+	@printf '\n' 
 	$(CC) $(CFLAGS) -c $< -o $@ 
 
 # LINK 
@@ -90,10 +95,10 @@ debug: $(EXE)
 
 	
 # Address san: lower overhead than thread-san, cleaner stack traces,
-asan: CFLAGS  += -g -fsanitize=address -fno-omit-frame-pointer
-asan: LDFLAGS += -fsanitize=address
-asan: LDLIBS  += -fsanitize=address
-asan: ASAN_ENV:= ASAN_OPTIONS=abort_on_error=1
+asan: CFLAGS  +=-fsanitize=address -O1 -fno-omit-frame-pointer -g 
+asan: LDFLAGS += 
+asan: LDLIBS  += 
+asan: ASAN_ENV:= ASAN_OPTIONS=abort_on_error=0
 asan: clean run 
 
 usan: CFLAGS  += -fsanitize=undefined -fno-omit-frame-pointer -g

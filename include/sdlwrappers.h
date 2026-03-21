@@ -11,6 +11,8 @@ typedef struct {
     bool fast_drop_pressed;
     bool rotate_left_pressed;
     bool rotate_right_pressed;
+    bool move_left_pressed;
+    bool move_right_pressed;
     vec2 s_mpos;  // raw mouse position, updated on mouse move event
     vec2 g_mpos;  // mouse position snapped to grid.
     i64  key_repeat_delay_ms_remaining;
@@ -43,6 +45,7 @@ typedef struct SDLContext {
     i64    cols;
     i64    rows;
     int    rotation_index;  // temporary
+    size_t ms_at_start;
 } SDLContext;
 extern SDLContext ctx;  // global context, i dont need multiple.
 
