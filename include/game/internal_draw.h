@@ -4,12 +4,12 @@
 #include "types.h"
 #include "vec2.h"
 
-void g_drawBlock(vec2 gridPos, double len, const ColorScheme piece_colors);
-void g_drawBlockSpecial(vec2 g_topLeftPos, double extent, const ColorScheme colorscheme);
+void g_drawBlockSpecial(vec2 g_topLeftPos, double extent, const ColorScheme colorscheme,
+                        float opacity);
 
 void s_drawBlock(vec2 s_pos, double len, const ColorScheme colorscheme);
-void s_drawPieceSpecial(vec2 s_pos, const vec2* offsets, const ColorScheme colors);
-void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme piece_colors);
+void s_drawPieceSpecial(vec2 s_pos, const vec2* offsets, const ColorScheme colors, float opacity);
+void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme colorscheme, float opacity);
 
 /*
  *

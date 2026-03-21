@@ -2,8 +2,11 @@
 #include "sdlwrappers.h"
 #include "types.h"
 
-// NOTE: implementation in  "src/piecedata.c"
+// NOTE: implementation in:
+// "src/piecedata.c"
 
+#define ROTATION_COUNT 4
+#define BLOCKS_PER_PIECE 4
 #define PieceType_START PieceType_I_Piece
 typedef enum {
     // try hovering over (<S>k in neovim) any of the enum values!!!
@@ -22,12 +25,14 @@ typedef enum {
 typedef const struct PieceData {
     const PieceType   type;         // see PieceType
     const SDL_FColor* colorscheme;  // contains increasing in brightness color bands for that piece
-    const vec2*       l_blockOffsets;  // contains grid space offsets of pieces
+    const vec2*       l_blockOffsets;  // Contains an array of blockOffset lists, for each rotation
     const vec2        l_rot_origin;    // describes the origin of the piece in piece space
-    const size_t      offsets_len;
+    const size_t      rotation_count;
+    const vec2        l_boundingBox;
 } PieceData;
 
 const PieceData*        get_piece_data(PieceType T);
+const char*             pttostr(PieceType T);
 static const SDL_FColor WHITE[] = {
     rgb(200, 200, 200), rgb(220, 220, 220), rgb(230, 230, 230),
     rgb(240, 240, 240), rgb(250, 255, 255),

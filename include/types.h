@@ -18,6 +18,6 @@ typedef int8_t  i8;
 #define DEF_ROWS (DEF_HEIGHT / BLOCK_SZ)
 
 #define DEF_WIDTH ((double)640)
-#define DEF_HEIGHT ((double)800)
+#define DEF_HEIGHT ((double)960)
 #define BLOCK_SZ (DEF_WIDTH / DEF_COLS)
 #define DEF_CELLCOUNT (int)(DEF_COLS * DEF_ROWS)

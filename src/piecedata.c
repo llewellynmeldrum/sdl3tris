@@ -1,156 +1,251 @@
-#include "piecedata.h"
 #include "logger.h"
 #include "macromagic.h"
 #include "sugar.h"
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-static const vec2 I_Piece_BoundingBoxSize = { 4, 4 };
-static const vec2 I_Piece_RotationOffsets[4][4] = {
+#include "piecedata.h"
+static const vec2 I_Piece_BoundingBox = { 4, 4 };
+static const vec2 I_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
     // horizontal, 0 degrees
-    {
-            { 0, 1 },
-            { 1, 1 },
-            { 2, 1 },
-            { 3, 1 },
-    },
-    // vertical, 90 degrees
-    {
-            { 2, 0 },
-            { 2, 1 },
-            { 2, 2 },
-            { 2, 3 },
-    },
-    // horizontal, 180 degrees
-    {
-            { 0, 2 },
-            { 1, 2 },
-            { 2, 2 },
-            { 3, 2 },
-    },
-
-    // vertical, 270 degrees
-    {
-            { 1, 0 },
-            { 1, 1 },
-            { 1, 2 },
-            { 1, 3 },
-    },
-
-};
-static const vec2 J_Piece_BoundingBoxSize = { 3, 3 };
-static const vec2 J_Piece_RotationOffsets[4][4] = {
-    // horizontal, 0 degrees
-    {
-            { 0, 0 },
-            { 0, 1 },
-            { 1, 1 },
-            { 2, 1 },
-    },
-    // vertical, 90 degrees
-    {
-            { 2, 0 },
-            { 1, 0 },
-            { 1, 1 },
-            { 1, 2 },
-    },
-    // horizontal, 180 degrees NOTE: UP TO HERE
-    {
-            { 0, 2 },
-            { 1, 2 },
-            { 2, 2 },
-            { 3, 2 },
-    },
-
-    // vertical, 270 degrees
-    {
-            { 1, 0 },
-            { 1, 1 },
-            { 1, 2 },
-            { 1, 3 },
-    },
-
-};
-
-static const vec2 I_Piece_Offsets[4] = {
-    { 0, 0 },
-    { 1, 0 },
-    { 2, 0 },
-    { 3, 0 },
-};
-static const vec2 J_Piece_Offsets[] = {
     { 0, 1 },
     { 1, 1 },
     { 2, 1 },
+    { 3, 1 },
+    // vertical, 90 degrees
     { 2, 0 },
-};
-
-static const vec2 L_Piece_Offsets[] = {
-    { 0, 0 },
-    { 0, 1 },
+    { 2, 1 },
+    { 2, 2 },
+    { 2, 3 },
+    // horizontal, 180 degrees
     { 0, 2 },
     { 1, 2 },
-};
-static const vec2 O_Piece_Offsets[] = {
-    { 0, 0 },
-    { 0, 1 },
+    { 2, 2 },
+    { 3, 2 },
+
+    // vertical, 270 degrees
     { 1, 0 },
     { 1, 1 },
+    { 1, 2 },
+    { 1, 3 },
 };
-static const vec2 S_Piece_Offsets[] = {
+static const vec2 J_Piece_BoundingBox = { 3, 3 };
+static const vec2 J_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
+    // horizontal, 0 degrees
+    { 0, 0 },
+    { 0, 1 },
+    { 1, 1 },
+    { 2, 1 },
+    // vertical, 90 degrees
+    { 2, 0 },
+    { 1, 0 },
+    { 1, 1 },
+    { 1, 2 },
+    // horizontal, 180 degrees
+    { 0, 1 },
+    { 1, 1 },
+    { 2, 1 },
+    { 2, 2 },
+    // vertical, 270 degrees
+    { 1, 0 },
+    { 1, 1 },
+    { 1, 2 },
+    { 0, 2 },
+};
+
+static const vec2 L_Piece_BoundingBox = { 3, 3 };
+static const vec2 L_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
+    // horizontal, 0 degrees
+    { 0, 1 },
+    { 1, 1 },
+    { 2, 1 },
+    { 2, 0 },
+    // vertical, 90 degrees
+    { 1, 0 },
+    { 1, 1 },
+    { 1, 2 },
+    { 2, 2 },
+    // horizontal, 180 degrees
+    { 0, 2 },
+    { 0, 1 },
+    { 1, 1 },
+    { 2, 1 },
+
+    // vertical, 270 degrees
+    { 0, 0 },
+    { 1, 0 },
+    { 1, 1 },
+    { 1, 2 },
+
+};
+static const vec2 O_Piece_BoundingBox = { 4, 3 };
+static const vec2 O_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
+    // horizontal, 0 degrees
+    { 1, 0 },
+    { 2, 0 },
+    { 1, 1 },
+    { 2, 1 },
+    // vertical, 90 degrees
+    { 1, 0 },
+    { 2, 0 },
+    { 1, 1 },
+    { 2, 1 },
+    // horizontal, 180 degrees
+    { 1, 0 },
+    { 2, 0 },
+    { 1, 1 },
+    { 2, 1 },
+
+    // vertical, 270 degrees
+    { 1, 0 },
+    { 2, 0 },
+    { 1, 1 },
+    { 2, 1 },
+
+};
+static const vec2 S_Piece_BoundingBox = { 3, 3 };
+static const vec2 S_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
+    // horizontal 0 degrees
     { 0, 1 },
     { 1, 1 },
     { 1, 0 },
     { 2, 0 },
-};
-static const vec2 T_Piece_Offsets[] = {
-    { 0, 0 },
+    // vertical 90 degrees
     { 1, 0 },
-    { 2, 0 },
     { 1, 1 },
+    { 2, 1 },
+    { 2, 2 },
+    // horizontal 180 degrees
+    { 0, 2 },
+    { 1, 2 },
+    { 1, 1 },
+    { 2, 1 },
+    // vertical 270 degrees
+    { 0, 0 },
+    { 0, 1 },
+    { 1, 1 },
+    { 1, 2 },
 };
-static const vec2 Z_Piece_Offsets[] = {
+static const vec2 T_Piece_BoundingBox = { 3, 3 };
+static const vec2 T_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
+    // horizontal 0 degrees
+    { 0, 1 },
+    { 1, 0 },
+    { 1, 1 },
+    { 2, 1 },
+    // vertical 90 degrees
+    { 1, 0 },
+    { 1, 1 },
+    { 1, 2 },
+    { 2, 1 },
+    // horizontal 180 degrees
+    { 0, 1 },
+    { 1, 1 },
+    { 2, 1 },
+    { 1, 2 },
+    // vertical 270 degrees
+    { 1, 1 },
+    { 1, 2 },
+    { 1, 0 },
+    { 0, 1 },
+};
+static const vec2 Z_Piece_BoundingBox = { 3, 3 };
+static const vec2 Z_Piece_RotationOffsets[ROTATION_COUNT * BLOCKS_PER_PIECE] = {
+    // horizontal 0 degrees
     { 0, 0 },
     { 1, 0 },
     { 1, 1 },
     { 2, 1 },
+    // vertical 90 degrees
+    { 1, 2 },
+    { 1, 1 },
+    { 2, 1 },
+    { 2, 0 },
+    // horizontal 180 degrees
+    { 0, 1 },
+    { 1, 1 },
+    { 1, 2 },
+    { 2, 2 },
+    // vertical 270 degrees
+    { 1, 1 },
+    { 1, 0 },
+    { 0, 2 },
+    { 0, 1 },
 };
-static const vec2 Wall_Piece_Offsets[1] = {
-    { 0, 0 },
-};
-
 #define DECL_PIECE(T, color, ox, oy)                                                               \
     static const PieceData PieceData_##T = { .type = PieceType_##T,                                \
                                              .colorscheme = color,                                 \
+                                             .rotation_count = 4,                                  \
                                              .l_rot_origin = { ox, oy },                           \
-                                             .offsets_len = ARRLEN(CONCAT(T, _Offsets)),           \
-                                             .l_blockOffsets = CONCAT(T, _Offsets) }
+                                             .l_boundingBox = CONCAT(T, _BoundingBox),             \
+                                             .l_blockOffsets = CONCAT(T, _RotationOffsets) }
 
-// clang-format off
-const vec2 o = {1,0};
-DECL_PIECE(Wall_Piece, grey, 0, 1);
-DECL_PIECE(I_Piece, cyan,   o.x, o.y);
-DECL_PIECE(J_Piece, blue,   o.x, o.y);
-DECL_PIECE(L_Piece, orange, o.x, o.y);
-DECL_PIECE(O_Piece, yellow, o.x, o.y);
-DECL_PIECE(S_Piece, green,  o.x, o.y);
-DECL_PIECE(T_Piece, purple, o.x, o.y); // should make a cross -|-  when rotated fast
-DECL_PIECE(Z_Piece, red,    o.x, o.y);
+const vec2 o = { 0, 0 };
 
-// this is just used to make writing them easier, all are expanded
-#define unwrap(T)                                                                                  \
-    case PieceType_##T:                                                                            \
-        return &(CONCAT(PieceData_, T));                                                           \
-        break
+DECL_PIECE(I_Piece, cyan, 1.5, 1.5);
+DECL_PIECE(J_Piece, blue, 1, 1);
+DECL_PIECE(L_Piece, orange, 1, 1);
+DECL_PIECE(O_Piece, yellow, 1.5, 0.5);
+DECL_PIECE(S_Piece, green, 1, 1);
+DECL_PIECE(T_Piece, purple, 1, 1);  // should make a cross -|-  when rotated fast
+DECL_PIECE(Z_Piece, red, 1, 1);
 
+#define piece_data_TOSTR(expr) #expr
+const char* pttostr(PieceType T) {
+    switch (T) {
+    case PieceType_I_Piece:
+        return piece_data_TOSTR(PieceData_I_Piece);
+        break;
+    case PieceType_J_Piece:
+        return piece_data_TOSTR(PieceData_J_Piece);
+        break;
+    case PieceType_L_Piece:
+        return piece_data_TOSTR(PieceData_L_Piece);
+        break;
+    case PieceType_O_Piece:
+        return piece_data_TOSTR(PieceData_O_Piece);
+        break;
+    case PieceType_S_Piece:
+        return piece_data_TOSTR(PieceData_S_Piece);
+        break;
+    case PieceType_T_Piece:
+        return piece_data_TOSTR(PieceData_T_Piece);
+        break;
+    case PieceType_Z_Piece:
+        return piece_data_TOSTR(PieceData_Z_Piece);
+        break;
+    default:
+        LOGERR("Unimplemented, expect a segfault");
+        return NULL;
+        break;
+    }
+}
 const PieceData* get_piece_data(PieceType T) {
     switch (T) {
-        unwrap(I_Piece);
-        unwrap(Wall_Piece);
-        unwrap(J_Piece);
-        unwrap(L_Piece);
-        unwrap(O_Piece);
-        unwrap(S_Piece);
-        unwrap(T_Piece);
-        unwrap(Z_Piece);
+    case PieceType_I_Piece:
+        return &PieceData_I_Piece;
+        break;
+    case PieceType_J_Piece:
+        return &PieceData_J_Piece;
+        break;
+    case PieceType_L_Piece:
+        return &PieceData_L_Piece;
+        break;
+    case PieceType_O_Piece:
+        return &PieceData_O_Piece;
+        break;
+    case PieceType_S_Piece:
+        return &PieceData_S_Piece;
+        break;
+    case PieceType_T_Piece:
+        return &PieceData_T_Piece;
+        break;
+    case PieceType_Z_Piece:
+        return &PieceData_Z_Piece;
+        break;
     default:
         LOGERR("Unimplemented, expect a segfault");
         return NULL;

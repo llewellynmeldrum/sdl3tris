@@ -115,13 +115,13 @@ GameContext updateGameContext(i64 dt_ms, GameContext gtx) {
 
     if (ctx.input.rotate_left_pressed) {
         gtx.fallingPiece.facing++;
-        gtx.fallingPiece.facing %= 3;
+        gtx.fallingPiece.facing %= 4;
         LOG("%d\n", gtx.fallingPiece.facing);
         ctx.input.rotate_left_pressed = false;
     }
     if (ctx.input.rotate_right_pressed) {
         gtx.fallingPiece.facing--;
-        gtx.fallingPiece.facing %= 3;
+        gtx.fallingPiece.facing %= 4;
         LOG("%d\n", gtx.fallingPiece.facing);
         ctx.input.rotate_right_pressed = false;
     }
@@ -136,37 +136,22 @@ SDL_AppResult SDL_AppIterate(void* _) {
     setcolor(ctx.draw.clear_color);
     SDL_RenderClear(ctx.renderer);
 
-    drawWalls();
-    {
-        vec2 g_tlpos = { 2, 2 };
-        for (PieceType T = 0; T < 4; T++) {
-            g_drawPiece(g_tlpos, T, gtx.fallingPiece.facing);
-            g_tlpos.x += 5;
+    vec2 g_tlpos = { 1, 1 };
+    for (PieceType T = 0; T < PieceType_COUNT; T++) {
+        PieceData* pd = get_piece_data(T);
+        g_tlpos.x = 1;
+        for (int rotation = 0; rotation < ROTATION_COUNT; rotation++) {
+            g_drawPiece(g_tlpos, T, rotation);
+            g_tlpos.x += pd->l_boundingBox.width;
+            //            g_drawBlock(g_tlpos, BLOCK_SZ, grey);  // walls
+            g_tlpos.x += 1;
         }
+
+        g_tlpos.y += pd->l_boundingBox.height;
+        //       g_drawBlock(g_tlpos, BLOCK_SZ, grey);  // walls
+        g_tlpos.y += 1;
     }
-    {
-        // figure out transparency it would be nice for debugging maybe
-        // anyway figure out the origins and get rotation down.
-        //
-        vec2 g_tlpos = { 2, 8 };
-        for (PieceType T = 4; T < PieceType_COUNT; T++) {
-            g_drawPiece(g_tlpos, T, gtx.fallingPiece.facing);
-            g_tlpos.x += 5;
-        }
-    }
-    // drawPieceQueue(gtx.piecequeue);
-    // // playgrid:
-    // drawGrid((vec2){ PLAYFIELD_GXOFFSET, 0 },
-    //         (vec2){ ctx.cols - PLAYFIELD_GXOFFSET, PLAYFIELD_HEIGHT });
-    //
-    // TESTING ROTATION, ACTUAL ROTATION WILL APPLY TO OFFSETS
-    //    vec2 rotated_offsets[OFFSET_LEN] = {};
-    //    for (int i = 0; i < OFFSET_LEN; i++) {
-    //        rotated_offsets[i] = piece->l_blockOffsets[i];
-    //        double rotation = M_PI_2 * 1;  // ctx.rotation_idx;
-    //        rotated_offsets[i] = rotate_vec2(rotated_offsets[i], rotation);
-    //    }
-    drawDebugOverlay(true);
+    // drawDebugOverlay(true);
     SDL_RenderPresent(ctx.renderer);
     ctx.perf.ms_lastframe = ctx.perf.ms_thisframe;
     return SDL_APP_CONTINUE;

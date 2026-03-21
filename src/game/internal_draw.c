@@ -1,26 +1,22 @@
 #include "game/internal_draw.h"
 #include "primitives.h"
 
-void g_drawBlock(vec2 g_pos, double extent, const ColorScheme colorscheme) {
-    vec2 s_topLeftPos = grid_to_screen(g_pos);
-    s_drawBlock(s_topLeftPos, extent, colorscheme);
-}
-
-void g_drawBlockSpecial(vec2 g_topLeftPos, double extent, const ColorScheme colorscheme) {
+void g_drawBlockSpecial(vec2 g_topLeftPos, double extent, const ColorScheme colorscheme,
+                        float opacity) {
     // given a grid position, draw a block with an X over it from the origin
     vec2 s_topLeftPos = grid_to_screen(g_topLeftPos);
-    s_drawBlockSpecial(s_topLeftPos, extent, colorscheme);
+    s_drawBlockSpecial(s_topLeftPos, extent, colorscheme, opacity);
 }
 
-void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme colorscheme) {
+void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme colorscheme, float opacity) {
     SDL_FColor translucent_colors[5] = {};
     for (int i = 0; i < 5; i++) {
         translucent_colors[i] = colorscheme[i];
-        translucent_colors[i].a = 0.5;
+        translucent_colors[i].a = opacity;
     }
     s_drawBlock(s_pos, len, translucent_colors);
-    float      thick = len * 0.14;
-    SDL_FColor black = (SDL_FColor){ 0.1, 0.1, 0.1, 0.5 };
+    float      thick = BLOCK_SZ * 0.14;
+    SDL_FColor black = (SDL_FColor){ 0.1, 0.1, 0.1, opacity };
 
     vec2 top_left = { s_pos.x, s_pos.y };
     vec2 bot_right = { s_pos.x + len, s_pos.y + len };
@@ -49,7 +45,7 @@ void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme colorscheme) {
     }
 }
 void s_drawBlock(vec2 s_pos, double len, const ColorScheme colorscheme) {
-    double bord = len * 0.14;  // border width
+    double bord = BLOCK_SZ * 0.14;  // border width
     {
         // MAIN QUAD
         vec2 quad_verts[] = {
