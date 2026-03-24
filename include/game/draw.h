@@ -4,11 +4,11 @@
 #include "sugar.h"
 
 // src/game/draw.c
-// void g_drawPiece(vec2 g_topLeftPos, PieceType T);
-void g_drawPiece(vec2 g_topLeftPos, PieceType T, int temp_rot);
-void drawPlayfield(void);
+void g_drawPiece(vec2 g_topLeftPos, PieceType T, int temp_rot, i64 opacity);
+void drawPlayfield(i64* row_opacity);
+void drawBackground(i64* row_opacity);
 void drawGrid(vec2 tl, vec2 br);
-void g_drawBlock(vec2 gridPos, double len, const ColorScheme piece_colors);
+void g_drawBlock(vec2 g_pos, double extent, const ColorScheme colorscheme, i64 opacity);
 void drawWalls(void);
 
 static inline vec2 snapToGrid(const vec2 s_pos) {

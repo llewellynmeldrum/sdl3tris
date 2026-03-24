@@ -7,7 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
-Queue q_create(const size_t element_size) {
+Queue q_create(const i64 element_size) {
     return (Queue){
         .size = 0,
         .element_size = element_size,

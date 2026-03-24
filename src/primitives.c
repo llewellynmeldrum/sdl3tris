@@ -2,7 +2,7 @@
 #include "sdlwrappers.h"
 #include "sugar.h"
 
-void draw_triangle(SDL_Vertex* vertices, size_t vert_count) {
+void draw_triangle(SDL_Vertex* vertices, i64 vert_count) {
     SDL_RenderGeometry(ctx.renderer, NULL, vertices, vert_count, NULL, 0);
 }
 

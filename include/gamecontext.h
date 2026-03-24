@@ -1,4 +1,6 @@
 #pragma once
+#include "Piece.h"
+#include "custom_assert.h"
 #include "game/draw.h"
 #include "game/piecequeue.h"
 #include "gridcell.h"
@@ -11,39 +13,38 @@
 #define DROPTIMER_INITIAL 10
 
 static inline PieceType random_piece_type() {
+#ifdef DEBUG
+    return PieceType_O_Piece;
+#else
     return (PieceType)urand(PieceType_START, PieceType_COUNT);
+#endif
 }
-static inline int get_grid_idx(size_t x, size_t y) {
+static inline int get_grid_idx(i64 x, i64 y) {
     return y * DEF_ROWS + x;
 }
 static inline int get_grid_idxv(vec2 v) {
     int idx = v.y * DEF_ROWS + v.x;
-    assert(idx < DEF_CELLCOUNT || "Attempted OOB access of grid.");
+    WARNING(idx < DEF_CELLCOUNT, "Attempted to access grid with idx>%d (%d)", DEF_CELLCOUNT, idx);
+    WARNING(idx >= 0, "Attempted to access grid with idx<0 (%d)", idx);
     return idx;
 }
 
-typedef struct Piece {
-    PieceType T;
-    Direction rotation;
-    vec2      g_pos;
-} Piece;
-
 typedef enum GameState {
+    GameStateGameOver,
+    GameStateActive,
     GameStateStartMenu,
     GameStatePaused,
-    GameStateActive,
-    GameStateGameOver,
 } GameState;
 
 typedef struct GameContext {
     GameState  state;
     PieceQueue piecequeue;
-    size_t     tick;  // gametick = 20 per second, gametick = (ms_since_start / 1000)*20
+    i64        tick;  // gametick = 20 per second, gametick = (ms_since_start / 1000)*20
     GridCell   grid[DEF_CELLCOUNT];
     double     droptimer;
-    size_t     droptimer_current;
+    i64        droptimer_current;
     Piece      activePiece;
-    size_t     moveDownDelay;
+    i64        moveDownDelay;
     vec2       g_dropPos;
     bool       isPieceActive;
 } GameContext;
@@ -102,12 +103,6 @@ static inline GameContext init_GameContext() {
     gtx.activePiece.g_pos = get_initial_position(gtx.activePiece.T);
     gtx.activePiece.rotation = get_initial_rotation(gtx.activePiece.T);
     LOGNOTICE("DROPIECE @%.f,%.f", vec2_unpack(gtx.activePiece.g_pos));
-    for (int i = 0; i < ARRLEN(gtx.grid); i++) {
-        gtx.grid[i] = (GridCell){
-            .colorscheme = NULL,
-            .occupied = false,
-        };
-    }
     for (int i = 0; i < ARRLEN(gtx.grid); i++) {
         gtx.grid[i] = (GridCell){
             .colorscheme = NULL,

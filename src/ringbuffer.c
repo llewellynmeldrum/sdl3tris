@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-RingBuffer* rb_create(size_t element_size, size_t capacity) {
+RingBuffer* rb_create(i64 element_size, i64 capacity) {
     RingBuffer* ptr = calloc(1, sizeof(*ptr));
     ptr->element_size = element_size;
     ptr->capacity = capacity;
@@ -13,14 +13,14 @@ RingBuffer* rb_create(size_t element_size, size_t capacity) {
     return ptr;
 }
 
-void rb_insert(RingBuffer* rb, void* element, size_t pos) {
-    void*  src = element;
-    void*  dst = (char*)rb->data + (pos * rb->element_size);
-    size_t size = rb->element_size;
+void rb_insert(RingBuffer* rb, void* element, i64 pos) {
+    void* src = element;
+    void* dst = (char*)rb->data + (pos * rb->element_size);
+    i64   size = rb->element_size;
     memmove(dst, src, size);
 }
 
-void* rb_get(RingBuffer* rb, size_t pos) {
+void* rb_get(RingBuffer* rb, i64 pos) {
     return (char*)rb->data + (pos * rb->element_size);
 }
 
@@ -46,7 +46,7 @@ void rb_destory(RingBuffer* rb) {
 double dbl_rb_avg(RingBuffer* rb) {
     // assumes rb is double
     double sum = 0;
-    for (size_t i = 0; i < rb->count; i++) {
+    for (i64 i = 0; i < rb->count; i++) {
         sum += *(double*)rb_get(rb, i);
     }
     double avg = sum / rb->count;

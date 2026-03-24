@@ -26,7 +26,7 @@ typedef struct Overlay {
     double vertical_spacing;
 
     const SDL_FColor font_color;
-    size_t           line_count;
+    i64              line_count;
 } Overlay;
 
 const static float BASE_PX = 8.0;
@@ -37,7 +37,7 @@ static Overlay overlay = {
     .font_height = 20.0,
     .font_width = 10.0,
     .vertical_spacing = BASE_PX/2.0,
-    .font_color = rgb(255, 0, 255),
+    .font_color = rgb(128, 255, 255),
     .line_count = 0,
 };
 // clang-format on
@@ -51,7 +51,7 @@ void overlay_reset(void) {
     overlay.line_count = 0;
 }
 
-void overlay_push_line(const char* line, size_t n) {
+void overlay_push_line(const char* line, i64 n) {
     // push new linebuf
     memcpy(overlay_lines[overlay.line_count], line, n);
     overlay.line_count++;
@@ -64,11 +64,11 @@ void overlay_push_fstr(const char* fmt, ...) {
 
     va_list args;
     va_start(args, fmt);
-    size_t buf_len = vsnprintf(buf, MAX_PUSH_LEN, fmt, args);
+    i64 buf_len = vsnprintf(buf, MAX_PUSH_LEN, fmt, args);
     va_end(args);
 
-    char*  current_line = NULL;
-    size_t line_len = 0;
+    char* current_line = NULL;
+    i64   line_len = 0;
     for (int i = 0; i < buf_len; i++) {
         if (!current_line) {
             current_line = &buf[i];
@@ -78,7 +78,7 @@ void overlay_push_fstr(const char* fmt, ...) {
             overlay_push_line(current_line, line_len);
 
             current_line =
-                    NULL;  // next iteration it will be set to the following byte if it exists
+                NULL;  // next iteration it will be set to the following byte if it exists
 
             line_len = 0;
         } else {
@@ -93,7 +93,8 @@ void drawDebugOverlay(bool bottom) {
     setcolor(overlay.font_color);
     double txt_scale = overlay.font_height / BASE_PX;
     SDL_SetRenderScale(ctx.renderer, txt_scale, txt_scale);
-    vec2 s_cursorpos = overlay.s_cursorPos;
+    [[maybe_unused]] vec2 s_cursorpos = overlay.s_cursorPos;
+
     vec2 s_scaledcpos = vec2_mul(overlay.s_cursorPos, txt_scale);
 
     if (bottom) {

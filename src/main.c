@@ -1,3 +1,4 @@
+#include "PieceType.h"
 #include "vec2.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -6,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// #define DEBUG
 #include "game/draw.h"
 #include "game/piecequeue.h"
 
@@ -23,53 +25,23 @@
 static void overlay_setFields(void);
 static void handleInputRequests(void);
 
-static size_t tick_last_frame;
+static i64 row_flashDuration[(i64)DEF_ROWS] = {};
+static i64 row_flashOpacity[(i64)DEF_ROWS] = {};  // 0-255
+static i64 tick_last_frame;
 
 GameContext gtx;
 SDLContext  ctx;
-
-// 1. define this:
-// #define DBG_REPORT_CALLS LOG_CALL
-// 2. instantiate DBG_REPORT_CALLS, eg:
-// ```c
-// void foo(){
-//      DBG_REPORT_CALLS;
-//      // ...
-// }
-// ```
-#define LOG_CALL                                                                                   \
-    do {                                                                                           \
-        LOGFN("Called.");                                                                          \
-    } while (0)
-
-#ifdef DBG_REPORT_CALLS
-#define return(x)                                                                                  \
-    do {                                                                                           \
-        const char* str = TOSTR(x);                                                                \
-        LOGFN("Returning: %s", str);                                                               \
-        return x;                                                                                  \
-    } while (0)
-#else
-#define return(x) return x
-#endif
-
-// #undef RETURN
-// #define RETURN(x) return x
-static bool isPieceInBounds(Piece p) {
-    if (!gtx.isPieceActive)
-        return (false);
+static bool grid_isPieceSpaceFree(Piece p) {
     PieceData* pd = getPieceData(p.T);
     vec2       g_topLeftPos = p.g_pos;
     for (int blk_idx = 0; blk_idx < BLOCKS_PER_PIECE; blk_idx++) {
-        size_t idx = getBlockOffset(gtx.activePiece.rotation, blk_idx);
-        vec2   g_piecePos = local_to_grid(pd->l_blockOffsets[idx], g_topLeftPos);
-        size_t gidx = get_grid_idxv(g_piecePos);
-        if (g_piecePos.x >= PLAYFIELD_SPAWN_XMAX || g_piecePos.x < PLAYFIELD_SPAWN_XMIN ||
-            g_piecePos.y >= PLAYFIELD_SPAWN_YMAX || g_piecePos.y < PLAYFIELD_SPAWN_YMIN) {
-            LOGERR("%.f,%.f is out of bounds!", vec2_unpack(g_piecePos));
-            return (false);
-        }
+        i64      idx = getBlockOffset(gtx.activePiece.rotation, blk_idx);
+        vec2     g_piecePos = local_to_grid(pd->l_blockOffsets[idx], g_topLeftPos);
+        i64      gidx = get_grid_idxv(g_piecePos);
         GridCell cell = gtx.grid[gidx];
+        if (gidx > DEF_CELLCOUNT || gidx <= 0) {
+            return true;
+        }
         if (cell.occupied) {
             LOGERR("%.f,%.f is already occupied!", vec2_unpack(g_piecePos));
             return (false);
@@ -78,21 +50,34 @@ static bool isPieceInBounds(Piece p) {
     return (true);
 }
 
-static void placeBlock(vec2 g_pos, ColorScheme colorscheme) {
-    gtx.grid[get_grid_idxv(g_pos)] = (GridCell){ .colorscheme = colorscheme, .occupied = true };
-}
-static void placePiece(Piece activePiece) {
-    if (!gtx.isPieceActive) {
-        //        LOGERR("Cannot place piece, there is not one active. .droptimer:%lf",
-        //        gtx.droptimer);
-        return;
+static bool grid_isPieceInBounds(Piece p) {
+    PieceData* pd = getPieceData(p.T);
+    vec2       g_topLeftPos = p.g_pos;
+    for (int blk_idx = 0; blk_idx < BLOCKS_PER_PIECE; blk_idx++) {
+        i64  idx = getBlockOffset(gtx.activePiece.rotation, blk_idx);
+        vec2 g_piecePos = local_to_grid(pd->l_blockOffsets[idx], g_topLeftPos);
+        if (g_piecePos.x >= PLAYFIELD_XMAX || g_piecePos.x < PLAYFIELD_XMIN ||
+            g_piecePos.y >= PLAYFIELD_YMAX || g_piecePos.y < PLAYFIELD_YMIN) {
+            LOGERR("%.f,%.f is out of bounds!", vec2_unpack(g_piecePos));
+            return (false);
+        }
     }
-    if (!isPieceInBounds(activePiece)) {
-        //        LOGERR("Cannot place piece, it is out of bounds." /* It shouldve been moved back
-        //        in when the
-        //                " "illegal move attempt was made, check input handling.*/
-        //               ".droptimer:%lf",
-        //               gtx.droptimer);
+    return (true);
+}
+
+static bool grid_isPieceLocationValid(Piece p) {
+    if (!gtx.isPieceActive)
+        return (false);
+    return grid_isPieceInBounds(p) && grid_isPieceSpaceFree(p);
+}
+
+static void grid_placeBlock(vec2 g_pos, ColorScheme colorscheme) {
+    gtx.grid[get_grid_idxv(g_pos)] = (GridCell){ .colorscheme = colorscheme, .occupied = true };
+    LOGFN("%s", TOSTR(g_pos));
+}
+
+static void grid_placePiece(Piece activePiece) {
+    if (!gtx.isPieceActive) {
         return;
     }
 
@@ -100,15 +85,15 @@ static void placePiece(Piece activePiece) {
     for (int i = 0; i < BLOCKS_PER_PIECE; i++) {
         int  idx = getBlockOffset(activePiece.rotation, i);
         vec2 g_pos = local_to_grid(pd->l_blockOffsets[idx], activePiece.g_pos);
-        placeBlock(g_pos, pd->colorscheme);
+        grid_placeBlock(g_pos, pd->colorscheme);
     }
     gtx.isPieceActive = false;
     gtx.droptimer_current = gtx.droptimer;
 }
 
-static void game_start(SDL_Window* win, SDL_Renderer* rend, size_t w, size_t h) {
+static void game_start(SDL_Window* win, SDL_Renderer* rend, i64 w, i64 h) {
     tick_last_frame = 0;
-    LOGLN("start_game(%p, %p, %zu, %zu)", win, rend, w, h);
+    LOGLN("start_game(%p, %p, %lld, %lld)", win, rend, w, h);
     ctx = init_ctx(win, rend, w, h);
     gtx = init_GameContext();
 }
@@ -137,24 +122,11 @@ void drawPieceQueue(PieceQueue pq) {
     PieceQueueNode* cur = pq.head;
     vec2            g_queue_pos = { ctx.cols - PLAYFIELD_XMIN + 1, 2 };
     for (int i = 0; i < pq.size; i++) {
-        g_drawPiece(g_queue_pos, cur->type, 0);
+        g_drawPiece(g_queue_pos, cur->type, 0, 255);
         g_queue_pos.y += 4;
         cur = cur->prev;  // moving down the queue towards the back
     }
 }
-
-GridCell* getCell(GridCell* playfield, vec2 g_pos) {
-    vec2   p_pos = { g_pos.x - PLAYFIELD_XMIN, g_pos.y - PLAYFIELD_YMIN };
-    size_t idx = p_pos.y * DEF_COLS + p_pos.x;
-    return &playfield[idx];
-}
-
-void setCell(GridCell* playfield, vec2 g_pos, GridCell val) {
-    vec2   p_pos = { g_pos.x - PLAYFIELD_XMIN, g_pos.y - PLAYFIELD_YMIN };
-    size_t idx = p_pos.y * DEF_COLS + p_pos.x;
-    playfield[idx] = val;
-}
-// checks to see if any of the pieces block sit outside of the PLAYFIELD.
 
 static inline i64 signed_mod(i64 x, i64 mod) {
     return llabs((x % mod));
@@ -171,14 +143,14 @@ void attemptPieceRotation(Direction dir) {
     switch (dir) {
     case Direction_LEFT:
         piece_rotateLeft(&gtx.activePiece);
-        if (!isPieceInBounds(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.activePiece)) {
             gtx.activePiece.rotation = rotationBefore;
         }
         break;
 
     case Direction_RIGHT:
         piece_rotateRight(&gtx.activePiece);
-        if (!isPieceInBounds(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.activePiece)) {
             gtx.activePiece.rotation = rotationBefore;
         }
         break;
@@ -196,9 +168,9 @@ static bool attemptPieceMove(Direction dir) {
         break;
     case Direction_DOWN:
         gtx.activePiece.g_pos.y++;
-        if (!isPieceInBounds(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.activePiece)) {
             gtx.activePiece.g_pos.y--;
-            placePiece(gtx.activePiece);
+            grid_placePiece(gtx.activePiece);
         } else {
             moved = true;
         }
@@ -206,7 +178,7 @@ static bool attemptPieceMove(Direction dir) {
 
     case Direction_LEFT:
         gtx.activePiece.g_pos.x--;
-        if (!isPieceInBounds(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.activePiece)) {
             gtx.activePiece.g_pos.x++;
         } else {
             moved = true;
@@ -215,7 +187,7 @@ static bool attemptPieceMove(Direction dir) {
 
     case Direction_RIGHT:
         gtx.activePiece.g_pos.x++;
-        if (!isPieceInBounds(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.activePiece)) {
             gtx.activePiece.g_pos.x--;
         } else {
             moved = true;
@@ -237,11 +209,12 @@ static void app_clear(SDL_FColor color) {
 
 static void app_draw(void) {
     app_clear(ctx.draw.clear_color);
+    drawBackground(row_flashOpacity);
     if (gtx.isPieceActive) {
-        g_drawPiece(gtx.activePiece.g_pos, gtx.activePiece.T, gtx.activePiece.rotation);
+        g_drawPiece(gtx.activePiece.g_pos, gtx.activePiece.T, gtx.activePiece.rotation, 255);
     }
     drawDebugOverlay(true);
-    drawPlayfield();
+    drawPlayfield(row_flashOpacity);
     drawPieceQueue(gtx.piecequeue);
     if (gtx.state == GameStateGameOver) {
         // draw game over screen
@@ -250,27 +223,37 @@ static void app_draw(void) {
     SDL_RenderPresent(ctx.renderer);
 }
 static Piece piecequeue_getNewPiece(PieceQueue* piecequeue, const Piece* old) {
+    PieceType T = pq_pop(piecequeue);
     pq_push(piecequeue, random_piece_type());
     Piece res = (Piece){
-        .T = pq_pop(piecequeue),
+        .T = T,
         .g_pos = get_initial_position(old->T),
         .rotation = get_initial_rotation(old->T),
     };
     return res;
 }
 
-static bool grid_isRowFull(GameContext* gtx, size_t row) {
+static bool grid_isRowFull(GameContext* gtx, i64 row) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idx = get_grid_idx(col, row);
         if (!gtx->grid[idx].occupied) {
             return false;
-            break;
         }
     }
     return true;
 }
 
-static void grid_swapRows(GameContext* gtx, size_t rowA, size_t rowB) {
+static bool grid_isRowEmpty(GameContext* gtx, i64 row) {
+    for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
+        int idx = get_grid_idx(col, row);
+        if (gtx->grid[idx].occupied) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void grid_swapRows(GameContext* gtx, i64 rowA, i64 rowB) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idxA = get_grid_idx(col, rowA);
         int idxB = get_grid_idx(col, rowB);
@@ -280,48 +263,78 @@ static void grid_swapRows(GameContext* gtx, size_t rowA, size_t rowB) {
         gtx->grid[idxB] = temp;
     }
 }
-static void grid_bubbleRowsDown(GameContext* gtx, size_t startingRow) {
-    // 1. if my row is empty, swap my contents with the row above me (row-1)
-    // 2. row = row-1;
+static void grid_bubbleRowsDown(GameContext* gtx, i64 startingRow) {
     for (int row = startingRow; row > PLAYFIELD_YMIN; row -= 1) {
         grid_swapRows(gtx, row, row - 1);
     }
 }
 
-static void grid_clearRow(GameContext* gtx, size_t row) {
-    // 1. clear the row
+const i64   ticks_flashDuration = 40;
+static void row_enableFlash(GameContext* gtx, i64 row) {
+    row_flashDuration[row] = ticks_flashDuration;
+}
+
+static void grid_clearRow(GameContext* gtx, i64 row) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idx = get_grid_idx(col, row);
         gtx->grid[idx].occupied = false;
     }
+    LOGEXPR(row);
+    row_enableFlash(gtx, row);
 }
-static void grid_update(size_t dt_ms, GameContext* gtx) {
-    for (int row = PLAYFIELD_YMAX - 1; row >= 0; row--) {
-        while (grid_isRowFull(gtx, row)) {
+float modulate(i64 tick, i64 flashduration) {
+    float       t = tick;
+    const float sx = 5;
+    const float ymin = 0;
+    const float ymax = (128 / ticks_flashDuration) * flashduration;
+    //        const float ymax = (128);
+    const float period = 10;
+    const float mid = (ymin + ymax) / 2.0;
+    const float height = ymax - ymin;
+
+    float a = height / 2.0;
+    float b = period;
+    float c = -sx * (M_PI / 10.0);
+    float d = mid;
+    return (sin(t * b + c) * a) + d;
+}
+static void grid_update(i64 deltaTicks, GameContext* gtx) {
+    for (int row = PLAYFIELD_YMAX; row >= 0; row--) {
+        if (grid_isRowFull(gtx, row)) {
             grid_clearRow(gtx, row);
+        }
+        if (row_flashDuration[row] > 0) {
+            row_flashDuration[row] -= deltaTicks;
+        }
+        row_flashOpacity[row] = modulate(gtx->tick, row_flashDuration[row]);
+    }
+    for (int row = PLAYFIELD_YMAX; row >= 0; row--) {
+        if (grid_isRowEmpty(gtx, row)) {
             grid_bubbleRowsDown(gtx, row);
         }
     }
 }
-static void app_update(size_t dt_ms, GameContext* gtx) {
+static void app_update(i64 dt_ms, GameContext* gtx) {
     const int app_TPS = 20;
-    if (gtx->state == GameStateGameOver) {
-        LOGERR("Game over!");
-        LOGEXIT(EXIT_SUCCESS);
-    }
-    gtx->tick = (size_t)(ms_since_start(&ctx) / (1000.0 / app_TPS));  // 20 tps
-    size_t deltaTick = gtx->tick - tick_last_frame;
 
-    grid_update(dt_ms, gtx);
+    if (gtx->state == GameStateGameOver) {
+        // LOGERR("Game over!");
+        return;
+    }
+    gtx->tick = (i64)(ms_since_start(&ctx) / (1000.0 / app_TPS));  // 20 tps
+    i64 deltaTick = gtx->tick - tick_last_frame;
+
+    grid_update(deltaTick, gtx);
     if (!gtx->isPieceActive && gtx->droptimer_current <= 0) {
         gtx->activePiece = piecequeue_getNewPiece(&gtx->piecequeue, &gtx->activePiece);
         gtx->isPieceActive = true;
-        if (!isPieceInBounds(gtx->activePiece)) {
+        LOGEXPR(gtx->activePiece);
+        LOGNOTICE("Spawned new piece @%.f,%.f", vec2_unpack(gtx->activePiece.g_pos));
+        if (!grid_isPieceSpaceFree(gtx->activePiece)) {
             LOGNOTICE("Game over!");
             gtx->state = GameStateGameOver;
             return;
         }
-        LOGNOTICE("Spawned new piece @%.f,%.f", vec2_unpack(gtx->activePiece.g_pos));
     }
     if (deltaTick > 0) {
         if (gtx->isPieceActive) {
@@ -434,10 +447,12 @@ void overlay_setFields(void) {
     //   OVERLAY_PRINTLN("m1: %s", m1str);
     //   OVERLAY_PRINTLN("spos: %.2f %.2f", vec2_unpack(ctx.input.s_mpos));
     //    OVERLAY_PRINTLN("gpos: %.2f %.2f", vec2_unpack(s_mpos));
-    OVERLAY_PRINTLN("tick: %zu", gtx.tick);
+    OVERLAY_PRINTLN("tick: %lld", gtx.tick);
     OVERLAY_PRINTLN("rotation: %s", Direction_tostr(gtx.activePiece.rotation));
     OVERLAY_PRINTLN("gpos: %.0f, %.0f", vec2_unpack(gtx.activePiece.g_pos));
     OVERLAY_PRINTLN("active: %d", gtx.isPieceActive);
+    OVERLAY_PRINTLN("droptimer: %lld", gtx.droptimer_current);
+    OVERLAY_PRINTLN("state: %lld", gtx.state);
 
     if (ctx.perf.show_perf_in_debug) {
         OVERLAY_PRINTLN("frametime: %.4lf", dbl_rb_avg(ctx.perf.ft_rb));
@@ -480,10 +495,6 @@ int main(int argc, char** argv) {
     SDL_Event event = {};
     i64       dt_ms = {};
 
-    for (int x = PLAYFIELD_XMIN; x < PLAYFIELD_XMAX; x++) {
-        const int y = 5;
-        placeBlock((vec2){ x, y }, red_bands);
-    }
     while (ctx.running) {
         profileFrameStats(&dt_ms);
         while (SDL_PollEvent(&event)) {

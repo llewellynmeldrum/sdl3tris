@@ -7,10 +7,6 @@
 static inline double get_current_ms(double freq) {
     double counter = SDL_GetPerformanceCounter();
     double res = (counter / freq) * 1000.0;
-
-#ifdef DEBUG
-    LOGLN("counter:%lf, res:%lf", counter, res);
-#endif
     return res;
 }
 

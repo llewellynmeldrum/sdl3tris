@@ -45,18 +45,18 @@ typedef struct SDLContext {
     i64    cols;
     i64    rows;
     int    rotation_index;  // temporary
-    size_t ms_at_start;
+    i64    ms_at_start;
     bool   running;
 } SDLContext;
 extern SDLContext ctx;  // global context, i dont need multiple.
 
 typedef struct {
     SDL_Vertex* data;
-    size_t      size;
+    i64         size;
 } VertexArray;
 // Background piece color
 void       drawVertexArray(VertexArray arr);
-SDLContext init_ctx(SDL_Window* win, SDL_Renderer* rend, size_t w, size_t h);
+SDLContext init_ctx(SDL_Window* win, SDL_Renderer* rend, i64 w, i64 h);
 
 // SDL_FColor from 0->255 grey value.
 #define GREY(gr) (SDL_FColor){ gr / 255.0, gr / 255.0, gr / 255.0, 1.0 }

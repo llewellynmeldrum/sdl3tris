@@ -10,7 +10,7 @@
 
 
 #define DEFAULT_PRESS_DELAY_MS 80
-SDLContext init_ctx(SDL_Window* win, SDL_Renderer* rend, size_t w, size_t h) {
+SDLContext init_ctx(SDL_Window* win, SDL_Renderer* rend, i64 w, i64 h) {
     if (!win){
         LOGERR("SDL window is null. SDLContext cannot be initialized without a valid window.");
     }
@@ -20,7 +20,7 @@ SDLContext init_ctx(SDL_Window* win, SDL_Renderer* rend, size_t w, size_t h) {
     assert(w> 0 && h>0 || "Invalid width/height passed to " || __FUNCTION__);
 
 
-    const size_t RB_CAPACITY = 10000;
+    const i64 RB_CAPACITY = 10000;
     SDLContext default_ctx = {
         .inputReq = {
             .PRESS_DELAY_MS = DEFAULT_PRESS_DELAY_MS,

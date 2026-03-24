@@ -1,4 +1,5 @@
 #pragma once
+#include "types.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -9,10 +10,10 @@ typedef struct QueueNode {
 } QueueNode;
 
 typedef struct Queue {
-    QueueNode*   head;
-    QueueNode*   tail;
-    size_t       size;
-    const size_t element_size;
+    QueueNode* head;
+    QueueNode* tail;
+    i64        size;
+    const i64  element_size;
 } Queue;
 
 static inline void debug_print_q(Queue* q) {
@@ -28,12 +29,12 @@ static inline void debug_print_q(Queue* q) {
     printf("Queue{\n"
            "    QueueNode*    front = %p;\n"
            "    QueueNode*     back = %p;\n"
-           "    size_t         size = %zu;\n"
-           "    size_t element_size = %zu;\n"
+           "    i64         size = %lld;\n"
+           "    i64 element_size = %lld;\n"
            "}\n",
            q->head, q->tail, q->size, q->element_size);
 }
-Queue pq_create(const size_t element_size);
+Queue pq_create(const i64 element_size);
 void  pq_destroy(Queue* q);
 
 // peeks from front of queue (FIFO)

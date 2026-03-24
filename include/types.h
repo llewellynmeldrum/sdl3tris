@@ -16,7 +16,7 @@ typedef int8_t  i8;
 
 #define BUFFERZONE_ROWS 3
 #define DEF_COLS ((double)20)
-#define DEF_ROWS ((double)23)
+#define DEF_ROWS ((double)DEF_HEIGHT / BLOCK_SZ)
 #define DEF_WIDTH ((double)640)
 #define DEF_HEIGHT ((double)960)
 #define BLOCK_SZ (DEF_WIDTH / DEF_COLS)
@@ -31,7 +31,7 @@ typedef int8_t  i8;
 #define X(dir) dir,
 typedef enum Direction {
     Direction__LIST  //
-            Direction_COUNT
+        Direction_COUNT
 } Direction;
 #undef X
 const char* Direction_tostr(Direction dir);

@@ -15,32 +15,46 @@ void g_showPieceBoundingBox(const vec2 g_topLeftPos, PieceType T) {
     g_drawBlockSpecial(g_topLeftPos, pd->l_boundingBox.width * BLOCK_SZ, WHITE, 0.1);
 }
 
-void g_drawBlock(vec2 g_pos, double extent, const ColorScheme colorscheme) {
+void g_drawBlock(vec2 g_pos, double extent, const ColorScheme colorscheme, i64 opacity) {
     vec2 s_topLeftPos = grid_to_screen(g_pos);
-    s_drawBlock(s_topLeftPos, extent, colorscheme);
+    s_drawBlock(s_topLeftPos, extent, colorscheme, opacity);
 }
 
-void drawPlayfield(void) {
-    drawGrid((vec2){ PLAYFIELD_XMIN, PLAYFIELD_YMIN }, (vec2){ PLAYFIELD_XMAX, PLAYFIELD_YMAX });
-    for (int y = PLAYFIELD_YMIN; y < PLAYFIELD_YMAX; y++) {
-        for (int x = PLAYFIELD_XMIN; x < PLAYFIELD_XMAX; x++) {
-            int idx = get_grid_idx(x, y);
-            if (gtx.grid[idx].occupied) {
-                g_drawBlock((vec2){ x, y }, BLOCK_SZ, gtx.grid[idx].colorscheme);
+void drawBackground(i64* row_opacity) {
+    for (int y = 0; y < DEF_ROWS; y++) {
+        for (int x = 0; x < DEF_COLS; x++) {
+            if (x < PLAYFIELD_XMAX && x >= PLAYFIELD_XMIN &&  //
+                y < PLAYFIELD_YMAX && y >= PLAYFIELD_YMIN) {
+                g_drawBlock((vec2){ x, y }, BLOCK_SZ, grey_bands, row_opacity[y]);
+            } else {
+                g_drawBlock((vec2){ x, y }, BLOCK_SZ, grey_bands, 255);
             }
         }
     }
 }
-void g_drawPiece(vec2 g_topLeftPos, PieceType T, int temp_rot) {
+void drawPlayfield(i64* row_opacity) {
+    drawGrid((vec2){ PLAYFIELD_XMIN, PLAYFIELD_YMIN }, (vec2){ PLAYFIELD_XMAX, PLAYFIELD_YMAX });
+
+    for (int y = PLAYFIELD_YMIN; y < PLAYFIELD_YMAX; y++) {
+        for (int x = PLAYFIELD_XMIN; x < PLAYFIELD_XMAX; x++) {
+            int idx = get_grid_idx(x, y);
+            if (gtx.grid[idx].occupied) {
+                g_drawBlock((vec2){ x, y }, BLOCK_SZ, gtx.grid[idx].colorscheme,
+                            255 - row_opacity[y]);
+            }
+        }
+    }
+}
+void g_drawPiece(vec2 g_topLeftPos, PieceType T, int temp_rot, i64 opacity) {
     PieceData* piece = getPieceData(T);
 
     //    g_showPieceBoundingBox(g_topLeftPos, T);
     for (int i = 0; i < OFFSET_LEN; i++) {
-        size_t idx = getBlockOffset(temp_rot, i);
-        vec2   g_blockPos = local_to_grid(piece->l_blockOffsets[idx], g_topLeftPos);
-        vec2   s_blockPos = grid_to_screen(g_blockPos);
+        i64  idx = getBlockOffset(temp_rot, i);
+        vec2 g_blockPos = local_to_grid(piece->l_blockOffsets[idx], g_topLeftPos);
+        vec2 s_blockPos = grid_to_screen(g_blockPos);
         //        LOGLN("Block @[%.2f,%.2f]", g_blockPos.x, g_blockPos.y);
-        s_drawBlock(s_blockPos, BLOCK_SZ, piece->colorscheme);
+        s_drawBlock(s_blockPos, BLOCK_SZ, piece->colorscheme, opacity);
     }
     //    g_showPieceRotationOrigin(g_topLeftPos, T);
 }
@@ -92,35 +106,4 @@ void drawGrid(vec2 g_min, vec2 g_max) {
         }
     }
     setcolor(previous_color);
-}
-
-void drawWalls(void) {
-    return;
-    PieceData* wall_piece = getPieceData(PieceType_Wall_Piece);
-    // draw floor
-    {
-        vec2 o = { 0, ctx.rows - PLAYFIELD_YMIN };
-        for (int x = 0; x < DEF_COLS; x++) {
-            for (int y = 0; y < PLAYFIELD_YMIN; y++) {
-                vec2 pos = { o.x + x, o.y + y };
-                pos = vec2_mul(pos, BLOCK_SZ);
-                s_drawBlock(pos, BLOCK_SZ, wall_piece->colorscheme);
-            }
-        }
-    }
-    {
-        // draw left wall
-        vec2 g_leftWall = { 0, 0 };
-        vec2 g_rightWall = { ctx.cols - PLAYFIELD_XMIN, 0 };
-        vec2 s_leftWall = grid_to_screen(g_leftWall);
-        vec2 s_rightWall = grid_to_screen(g_rightWall);
-        for (int x = 0; x < PLAYFIELD_XMIN; x += BLOCK_SZ) {
-            for (int y = 0; y < DEF_ROWS; y += BLOCK_SZ) {
-                vec2 s_leftWall = { s_leftWall.x + x, s_leftWall.y + y };
-                vec2 s_rightWall = { PLAYFIELD_WIDTH + s_rightWall.x + x, s_rightWall.y + y };
-                s_drawBlock(s_leftWall, BLOCK_SZ, wall_piece->colorscheme);
-                s_drawBlock(s_rightWall, BLOCK_SZ, wall_piece->colorscheme);
-            }
-        }
-    }
 }

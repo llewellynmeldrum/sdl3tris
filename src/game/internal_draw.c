@@ -15,7 +15,7 @@ void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme colorscheme, f
         translucent_colors[i] = colorscheme[i];
         translucent_colors[i].a = opacity;
     }
-    s_drawBlock(s_pos, len, translucent_colors);
+    s_drawBlock(s_pos, len, translucent_colors, opacity);
     float      thick = BLOCK_SZ * 0.14;
     SDL_FColor black = (SDL_FColor){ 0.1, 0.1, 0.1, opacity };
 
@@ -45,7 +45,12 @@ void s_drawBlockSpecial(vec2 s_pos, double len, const ColorScheme colorscheme, f
         s_drawQuad(quad_verts, black);
     }
 }
-void s_drawBlock(vec2 s_pos, double len, const ColorScheme colorscheme) {
+void s_drawBlock(vec2 s_pos, double len, const ColorScheme in, float opacity) {
+    SDL_FColor colorscheme[5] = {};
+    for (int i = 0; i < 5; i++) {
+        colorscheme[i] = in[i];
+        colorscheme[i].a = opacity/255.0;
+    }
     double bord = BLOCK_SZ * 0.14;  // border width
     {
         // MAIN QUAD

@@ -13,7 +13,7 @@ typedef struct QueueNode {
 typedef struct PieceQueue {
     PieceQueueNode* head;
     PieceQueueNode* tail;
-    size_t          size;
+    i64             size;
 } PieceQueue;
 
 PieceQueue pq_create(void);

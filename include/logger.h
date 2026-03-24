@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Piece.h"
+#include "piecedata.h"
 #include "types.h"
 #include "vec2.h"
 #include <ctype.h>
@@ -13,9 +15,11 @@
 #define BOLD "\e[1m"
 #define RED "\e[31m"
 #define BOLD_RED "\e[1;31m"
+#define BG_WHITE_FG_BLACK "\e[47;30m"
 #define GREEN "\e[32m"
 #define BOLD_GREEN "\e[1;32m"
-#define YELLOW "\e[34m"
+#define CYAN "\e[34m"
+#define YELLOW "\e[33m"
 #define BOLD_YELLOW "\e[1;34m"
 // Given two heap allocated strings, insert `src` starting at `dst[pos]`.
 // dst is reallocated to be the size of the two strings combined, i.e strlen(src)+strlen(dst)+1.
@@ -27,6 +31,7 @@
 
 #define LOG_INFO() fprintf(OSTREAM, "\e[1m[%s:%d]\e[0m:", __FILE__, __LINE__)
 #define LOG_INFO_FN() fprintf(OSTREAM, "\e[1m[%s:%d:%s()]\e[0m: ", __FILE__, __LINE__, __FUNCTION__)
+#define LOG_INFO_FN_NOSTYLE() fprintf(OSTREAM, "[%s:%d:%s()]: ", __FILE__, __LINE__, __FUNCTION__)
 
 #define LOG(fmt, ...) fprintf(OSTREAM, fmt, ##__VA_ARGS__)
 
@@ -80,6 +85,30 @@
         LOGEXIT(EXIT_FAILURE);                                                                     \
     } while (0)
 
+#define LOGASSERTFAIL(fmt, ...)                                                                    \
+    do {                                                                                           \
+        LOG(BG_WHITE_FG_BLACK);                                                                    \
+        LOG("\t---[ASSERTION FAILED]---\t\n");                                                     \
+        LOG(END_STYLE);                                                                            \
+        LOG_INFO_FN();                                                                             \
+        LOG(END_STYLE);                                                                            \
+        LOGLN(RED);                                                                                \
+        LOGLN(fmt, ##__VA_ARGS__);                                                                 \
+        LOG(END_STYLE);                                                                            \
+        LOGEXIT(EXIT_FAILURE);                                                                     \
+    } while (0)
+#define LOGWARNINGFAIL(fmt, ...)                                                                   \
+    do {                                                                                           \
+        LOG(YELLOW);                                                                               \
+        LOG("[WARNING!] from -> ");                                                                \
+        LOG(END_STYLE);                                                                            \
+        LOG_INFO_FN();                                                                             \
+        LOG(END_STYLE);                                                                            \
+        LOGLN(YELLOW);                                                                             \
+        LOGLN("\t" fmt, ##__VA_ARGS__);                                                            \
+        LOG(END_STYLE);                                                                            \
+    } while (0)
+
 #define LOGERR(fmt, ...)                                                                           \
     do {                                                                                           \
         LOG(RED);                                                                                  \
@@ -88,9 +117,10 @@
         LOG(END_STYLE);                                                                            \
         LOGLN(fmt, ##__VA_ARGS__);                                                                 \
     } while (0)
+
 #define LOGNOTICE(fmt, ...)                                                                        \
     do {                                                                                           \
-        LOG(YELLOW);                                                                               \
+        LOG(CYAN);                                                                                 \
         LOG("[NOTICE] in ->");                                                                     \
         LOG_INFO_FN();                                                                             \
         LOG(END_STYLE);                                                                            \
@@ -102,11 +132,16 @@
     X(uint64_t, "%llu", val)                                                                       \
     X(double, "%lf", val)                                                                          \
     X(vec2, "%.2f,%.2f", val.x, val.y)                                                             \
-    X(bool, "%s", (val ? "true" : "false"))
+    X(bool, "%s", (val ? "true" : "false"))                                                        \
+    X(SDL_FColor, "rgba(%f,%f,%f,%f)", val.r, val.g, val.b, val.a)                                 \
+    X(Piece, "{\n\t.T=%s, \n\t.rotation=%s, \n\t.g_pos={%s}\n}", pt_toStr(val.T),                  \
+      Direction_tostr(val.rotation), vec2_toStr(val.g_pos))                                        \
+    X(ColorScheme, "{\n\t.rgb[0]=%s\n}", SDL_FColor_toStr(val[0]))
 
 #define X(T, fmt, ...)                                                                             \
     static inline const char* T##_toStr(T val) {                                                   \
         char* buf = calloc(128, sizeof(char));                                                     \
+        fprintf(stderr, "%s ", #T);                                                                \
         snprintf(buf, 128, fmt, ##__VA_ARGS__);                                                    \
         return buf;                                                                                \
     }
@@ -121,6 +156,9 @@ X_LIST_TYPENAMES
         double: double_toStr,                                                                      \
         bool: bool_toStr,                                                                          \
         vec2: vec2_toStr,                                                                          \
+        Piece: Piece_toStr,                                                                        \
+        SDL_FColor: SDL_FColor_toStr,                                                              \
+        ColorScheme: ColorScheme_toStr,                                                            \
         default: int_toStr)(x)
 
 #define LOGEXPR(x)                                                                                 \
