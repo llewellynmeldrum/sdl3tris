@@ -1,11 +1,13 @@
-#include "queue.h"
-#include "logger.h"
 #include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "logger.h"
+#include "queue.h"
+#include "timing.h"
 
 Queue q_create(const i64 element_size) {
     return (Queue){
@@ -17,13 +19,13 @@ Queue q_create(const i64 element_size) {
 }
 void q_print(Queue* q, void (*print_function)(void*)) {
     QueueNode* cur = q->tail;
-    LOG("[");
+    LOG_INFO("[");
     while (cur) {
         print_function(cur->data);
         cur = cur->next;
-        LOG(", ");
+        LOG_INFO(", ");
     }
-    LOG("]\n");
+    LOG_INFO("]\n");
 }
 
 void* q_peek(Queue* q) {
@@ -32,7 +34,7 @@ void* q_peek(Queue* q) {
 
 void* q_pop(Queue* q) {
     if (q->size == 0 || !q->head) {
-        LOGERR("Tried to pop from empty queue @%p", q);
+        LOG_ERROR("Tried to pop from empty queue @%p", q);
         return NULL;
     }
     QueueNode* victim = q->head;
@@ -53,7 +55,7 @@ void* q_pop(Queue* q) {
 void q_push(Queue* q, void* src) {
     QueueNode* newtail = calloc(1, sizeof(*newtail));
     if (!newtail) {
-        LOGERR("Calloc returned null.");
+        LOG_ERROR("Calloc returned null.");
     }
     newtail->data = src;
     QueueNode* oldtail = q->tail;

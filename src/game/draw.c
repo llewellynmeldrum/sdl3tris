@@ -53,7 +53,7 @@ void g_drawPiece(vec2 g_topLeftPos, PieceType T, int temp_rot, i64 opacity) {
         i64  idx = getBlockOffset(temp_rot, i);
         vec2 g_blockPos = local_to_grid(piece->l_blockOffsets[idx], g_topLeftPos);
         vec2 s_blockPos = grid_to_screen(g_blockPos);
-        //        LOGLN("Block @[%.2f,%.2f]", g_blockPos.x, g_blockPos.y);
+        //        LOG_INFO("Block @[%.2f,%.2f]", g_blockPos.x, g_blockPos.y);
         s_drawBlock(s_blockPos, BLOCK_SZ, piece->colorscheme, opacity);
     }
     //    g_showPieceRotationOrigin(g_topLeftPos, T);

@@ -101,7 +101,7 @@ void drawDebugOverlay(bool bottom) {
         s_scaledcpos.y = (ctx.h / txt_scale) - (overlay.vertical_spacing * overlay.line_count);
         for (int i = overlay.line_count - 1; i >= 0; i--) {
             SDL_RenderDebugText(ctx.renderer, s_scaledcpos.x, s_scaledcpos.y, overlay_lines[i]);
-            //            LOGLN("%lf,%lf", s_scaledcpos.x, s_scaledcpos.y);
+            //            LOG_INFO("%lf,%lf", s_scaledcpos.x, s_scaledcpos.y);
             s_scaledcpos.y -= overlay.vertical_spacing * txt_scale;
         }
     } else {

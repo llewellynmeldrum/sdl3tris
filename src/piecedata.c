@@ -1,13 +1,14 @@
-#include "logger.h"
-#include "macromagic.h"
-#include "sugar.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "logger.h"
+#include "macromagic.h"
 #include "piecedata.h"
+#include "sugar.h"
+#include "timing.h"
 // The rotations are based on this [website](https://tetris.wiki/images/3/3d/SRS-pieces.png)
 
 static const vec2 I_Piece_BoundingBox = { 4, 4 };
@@ -220,11 +221,12 @@ const char* pt_toStr(PieceType T) {
         return piece_data_TOSTR(PieceData_Z_Piece);
         break;
     default:
-        LOGERR("Unimplemented, expect a segfault");
+        LOG_ERROR("Unimplemented, expect a segfault");
         return NULL;
         break;
     }
 }
+
 const PieceData* getPieceData(PieceType T) {
     switch (T) {
     case PieceType_I_Piece:
@@ -249,7 +251,7 @@ const PieceData* getPieceData(PieceType T) {
         return &PieceData_Z_Piece;
         break;
     default:
-        LOGERR("Unimplemented, expect a segfault");
+        LOG_ERROR("Unimplemented, expect a segfault");
         return NULL;
         break;
     }

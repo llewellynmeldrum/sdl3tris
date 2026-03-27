@@ -12,10 +12,10 @@
 #define DEFAULT_PRESS_DELAY_MS 80
 SDLContext init_ctx(SDL_Window* win, SDL_Renderer* rend, i64 w, i64 h) {
     if (!win){
-        LOGERR("SDL window is null. SDLContext cannot be initialized without a valid window.");
+        LOG_ERROR("SDL window is null. SDLContext cannot be initialized without a valid window.");
     }
     if (!rend){
-        LOGERR("SDL renderer is null. SDLContext cannot be initialized without a valid renderer.");
+        LOG_ERROR("SDL renderer is null. SDLContext cannot be initialized without a valid renderer.");
     }
     assert(w> 0 && h>0 || "Invalid width/height passed to " || __FUNCTION__);
 

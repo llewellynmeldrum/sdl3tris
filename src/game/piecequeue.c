@@ -1,6 +1,8 @@
+#include <stdlib.h>
+
 #include "game/piecequeue.h"
 #include "logger.h"
-#include <stdlib.h>
+#include "timing.h"
 
 PieceQueue pq_create() {
     return (PieceQueue){
@@ -15,7 +17,7 @@ PieceType pq_peek(PieceQueue* q) {
 
 PieceType pq_pop(PieceQueue* q) {
     if (q->size == 0 || !q->head) {
-        LOGERR("Tried to pop from empty queue @%p", q);
+        LOG_ERROR("Tried to pop from empty queue @%p", q);
         return -1;
     }
     PieceQueueNode* victim = q->head;
@@ -36,7 +38,7 @@ PieceType pq_pop(PieceQueue* q) {
 void pq_push(PieceQueue* q, PieceType src) {
     PieceQueueNode* newtail = calloc(1, sizeof(*newtail));
     if (!newtail) {
-        LOGERR("Calloc returned null.");
+        LOG_ERROR("Calloc returned null.");
     }
     newtail->type = src;
     PieceQueueNode* oldtail = q->tail;

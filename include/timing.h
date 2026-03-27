@@ -1,6 +1,7 @@
 #pragma once
 #include "logger.h"
 #include "sdlwrappers.h"
+#include <math.h>
 #include <sys/time.h>
 // #define DEBUG
 
@@ -10,10 +11,10 @@ static inline double get_current_ms(double freq) {
     return res;
 }
 
-static inline double ms_since_start(SDLContext* ctx) {
-    return get_current_ms(ctx->clock_freq) - ctx->ms_at_start;
+static inline double ms_since_start(void) {
+    double ms = get_current_ms(ctx.clock_freq) - ctx.ms_at_start;
+    return isfinite(ms) ? ms : 0.0;
 }
-#undef DEBUG
 /*
 typedef struct timeval Timeval;
 

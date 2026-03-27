@@ -8,6 +8,7 @@
 #include "numeric.h"
 #include "piecedata.h"
 #include "sugar.h"
+#include "timing.h"
 #include <stdlib.h>
 #define DEF_CELLCOUNT (int)(DEF_COLS * DEF_ROWS)
 #define DROPTIMER_INITIAL 10
@@ -24,8 +25,9 @@ static inline int get_grid_idx(i64 x, i64 y) {
 }
 static inline int get_grid_idxv(vec2 v) {
     int idx = v.y * DEF_ROWS + v.x;
-    WARNING(idx < DEF_CELLCOUNT, "Attempted to access grid with idx>%d (%d)", DEF_CELLCOUNT, idx);
-    WARNING(idx >= 0, "Attempted to access grid with idx<0 (%d)", idx);
+    ASSERT_WARNING(idx < DEF_CELLCOUNT, "Attempted to access grid with idx>%d (%d)", DEF_CELLCOUNT,
+                   idx);
+    ASSERT_WARNING(idx >= 0, "Attempted to access grid with idx<0 (%d)", idx);
     return idx;
 }
 
@@ -102,7 +104,7 @@ static inline GameContext init_GameContext() {
     gtx.activePiece.T = random_piece_type();
     gtx.activePiece.g_pos = get_initial_position(gtx.activePiece.T);
     gtx.activePiece.rotation = get_initial_rotation(gtx.activePiece.T);
-    LOGNOTICE("DROPIECE @%.f,%.f", vec2_unpack(gtx.activePiece.g_pos));
+    LOG_NOTICE("DROPIECE @%.f,%.f", vec2_unpack(gtx.activePiece.g_pos));
     for (int i = 0; i < ARRLEN(gtx.grid); i++) {
         gtx.grid[i] = (GridCell){
             .colorscheme = NULL,
@@ -112,7 +114,7 @@ static inline GameContext init_GameContext() {
     srand(time(NULL));
     for (int i = 0; i < PQ_CAPACITY; i++) {
         pq_push(&gtx.piecequeue, random_piece_type());
-        // LOGLN("%d", gtx.piecequeue.head->type);
+        // LOG_INFO("%d", gtx.piecequeue.head->type);
     }
     return gtx;
 }

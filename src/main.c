@@ -1,16 +1,16 @@
-#include "PieceType.h"
-#include "vec2.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#define DISABLE_WARNINGS
 
 // #define DEBUG
 #include "game/draw.h"
 #include "game/piecequeue.h"
 
+#include "PieceType.h"
 #include "debug_overlay.h"
 #include "gamecontext.h"
 #include "gridcell.h"
@@ -21,6 +21,7 @@
 #include "sugar.h"
 #include "timing.h"
 #include "types.h"
+#include "vec2.h"
 
 static void overlay_setFields(void);
 static void handleInputRequests(void);
@@ -43,7 +44,7 @@ static bool grid_isPieceSpaceFree(Piece p) {
             return true;
         }
         if (cell.occupied) {
-            LOGERR("%.f,%.f is already occupied!", vec2_unpack(g_piecePos));
+            LOG_ERROR("%.f,%.f is already occupied!", vec2_unpack(g_piecePos));
             return (false);
         }
     }
@@ -58,25 +59,25 @@ static bool grid_isPieceInBounds(Piece p) {
         vec2 g_piecePos = local_to_grid(pd->l_blockOffsets[idx], g_topLeftPos);
         if (g_piecePos.x >= PLAYFIELD_XMAX || g_piecePos.x < PLAYFIELD_XMIN ||
             g_piecePos.y >= PLAYFIELD_YMAX || g_piecePos.y < PLAYFIELD_YMIN) {
-            LOGERR("%.f,%.f is out of bounds!", vec2_unpack(g_piecePos));
+            // LOG_ERROR("%.f,%.f is out of bounds!", vec2_unpack(g_piecePos));
             return (false);
         }
     }
     return (true);
 }
 
-static bool grid_isPieceLocationValid(Piece p) {
+static bool grid_isPieceLocationValid(GridCell* grid, Piece p) {
     if (!gtx.isPieceActive)
         return (false);
     return grid_isPieceInBounds(p) && grid_isPieceSpaceFree(p);
 }
 
-static void grid_placeBlock(vec2 g_pos, ColorScheme colorscheme) {
+static void grid_placeBlock(GridCell* grid, vec2 g_pos, ColorScheme colorscheme) {
     gtx.grid[get_grid_idxv(g_pos)] = (GridCell){ .colorscheme = colorscheme, .occupied = true };
-    LOGFN("%s", TOSTR(g_pos));
+    // LOGFN("%s", TOSTR(g_pos));
 }
 
-static void grid_placePiece(Piece activePiece) {
+static void grid_placePiece(GridCell* grid, Piece activePiece) {
     if (!gtx.isPieceActive) {
         return;
     }
@@ -85,7 +86,7 @@ static void grid_placePiece(Piece activePiece) {
     for (int i = 0; i < BLOCKS_PER_PIECE; i++) {
         int  idx = getBlockOffset(activePiece.rotation, i);
         vec2 g_pos = local_to_grid(pd->l_blockOffsets[idx], activePiece.g_pos);
-        grid_placeBlock(g_pos, pd->colorscheme);
+        grid_placeBlock(grid, g_pos, pd->colorscheme);
     }
     gtx.isPieceActive = false;
     gtx.droptimer_current = gtx.droptimer;
@@ -93,7 +94,6 @@ static void grid_placePiece(Piece activePiece) {
 
 static void game_start(SDL_Window* win, SDL_Renderer* rend, i64 w, i64 h) {
     tick_last_frame = 0;
-    LOGLN("start_game(%p, %p, %lld, %lld)", win, rend, w, h);
     ctx = init_ctx(win, rend, w, h);
     gtx = init_GameContext();
 }
@@ -143,19 +143,19 @@ void attemptPieceRotation(Direction dir) {
     switch (dir) {
     case Direction_LEFT:
         piece_rotateLeft(&gtx.activePiece);
-        if (!grid_isPieceLocationValid(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.grid, gtx.activePiece)) {
             gtx.activePiece.rotation = rotationBefore;
         }
         break;
 
     case Direction_RIGHT:
         piece_rotateRight(&gtx.activePiece);
-        if (!grid_isPieceLocationValid(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.grid, gtx.activePiece)) {
             gtx.activePiece.rotation = rotationBefore;
         }
         break;
     default:
-        LOGFATAL("Rotation of %s is unsupported.", Direction_tostr(dir));
+        LOG_FATAL("Rotation of %s is unsupported.", Direction_tostr(dir));
         break;
     }
 }
@@ -164,13 +164,13 @@ static bool attemptPieceMove(Direction dir) {
     bool moved = false;
     switch (dir) {
     case Direction_UP:
-        LOGFATAL("Bro defies gravity");
+        LOG_FATAL("Bro defies gravity");
         break;
     case Direction_DOWN:
         gtx.activePiece.g_pos.y++;
-        if (!grid_isPieceLocationValid(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.grid, gtx.activePiece)) {
             gtx.activePiece.g_pos.y--;
-            grid_placePiece(gtx.activePiece);
+            grid_placePiece(gtx.grid, gtx.activePiece);
         } else {
             moved = true;
         }
@@ -178,7 +178,7 @@ static bool attemptPieceMove(Direction dir) {
 
     case Direction_LEFT:
         gtx.activePiece.g_pos.x--;
-        if (!grid_isPieceLocationValid(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.grid, gtx.activePiece)) {
             gtx.activePiece.g_pos.x++;
         } else {
             moved = true;
@@ -187,7 +187,7 @@ static bool attemptPieceMove(Direction dir) {
 
     case Direction_RIGHT:
         gtx.activePiece.g_pos.x++;
-        if (!grid_isPieceLocationValid(gtx.activePiece)) {
+        if (!grid_isPieceLocationValid(gtx.grid, gtx.activePiece)) {
             gtx.activePiece.g_pos.x--;
         } else {
             moved = true;
@@ -195,7 +195,7 @@ static bool attemptPieceMove(Direction dir) {
 
         break;
     default:
-        LOGFATAL("Unknown direction (%d) supplied.", dir);
+        LOG_FATAL("Unknown direction (%d) supplied.", dir);
         break;
     }
 
@@ -222,7 +222,7 @@ static void app_draw(void) {
 
     SDL_RenderPresent(ctx.renderer);
 }
-static Piece piecequeue_getNewPiece(PieceQueue* piecequeue, const Piece* old) {
+Piece piecequeue_getNewPiece(PieceQueue* piecequeue, const Piece* old) {
     PieceType T = pq_pop(piecequeue);
     pq_push(piecequeue, random_piece_type());
     Piece res = (Piece){
@@ -233,54 +233,54 @@ static Piece piecequeue_getNewPiece(PieceQueue* piecequeue, const Piece* old) {
     return res;
 }
 
-static bool grid_isRowFull(GameContext* gtx, i64 row) {
+static bool grid_isRowFull(GridCell* grid, i64 row) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idx = get_grid_idx(col, row);
-        if (!gtx->grid[idx].occupied) {
+        if (!grid[idx].occupied) {
             return false;
         }
     }
     return true;
 }
 
-static bool grid_isRowEmpty(GameContext* gtx, i64 row) {
+static bool grid_isRowEmpty(GridCell* grid, i64 row) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idx = get_grid_idx(col, row);
-        if (gtx->grid[idx].occupied) {
+        if (grid[idx].occupied) {
             return false;
         }
     }
     return true;
 }
 
-static void grid_swapRows(GameContext* gtx, i64 rowA, i64 rowB) {
+static void grid_swapRows(GridCell* grid, i64 rowA, i64 rowB) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idxA = get_grid_idx(col, rowA);
         int idxB = get_grid_idx(col, rowB);
 
-        GridCell temp = gtx->grid[idxA];
-        gtx->grid[idxA] = gtx->grid[idxB];
-        gtx->grid[idxB] = temp;
+        GridCell temp = grid[idxA];
+        grid[idxA] = grid[idxB];
+        grid[idxB] = temp;
     }
 }
-static void grid_bubbleRowsDown(GameContext* gtx, i64 startingRow) {
+static void grid_bubbleRowsDown(GridCell* grid, i64 startingRow) {
     for (int row = startingRow; row > PLAYFIELD_YMIN; row -= 1) {
-        grid_swapRows(gtx, row, row - 1);
+        grid_swapRows(grid, row, row - 1);
     }
 }
 
 const i64   ticks_flashDuration = 40;
-static void row_enableFlash(GameContext* gtx, i64 row) {
+static void row_enableFlash(GridCell* grid, i64 row) {
     row_flashDuration[row] = ticks_flashDuration;
 }
 
-static void grid_clearRow(GameContext* gtx, i64 row) {
+static void grid_clearRow(GridCell* grid, i64 row) {
     for (int col = PLAYFIELD_XMIN; col < PLAYFIELD_XMAX; col++) {
         int idx = get_grid_idx(col, row);
-        gtx->grid[idx].occupied = false;
+        grid[idx].occupied = false;
     }
-    LOGEXPR(row);
-    row_enableFlash(gtx, row);
+    LOG_EXPR(row);
+    row_enableFlash(grid, row);
 }
 float modulate(i64 tick, i64 flashduration) {
     float       t = tick;
@@ -298,19 +298,19 @@ float modulate(i64 tick, i64 flashduration) {
     float d = mid;
     return (sin(t * b + c) * a) + d;
 }
-static void grid_update(i64 deltaTicks, GameContext* gtx) {
+static void grid_update(GridCell* grid, i64 deltaTicks, i64 tick) {
     for (int row = PLAYFIELD_YMAX; row >= 0; row--) {
-        if (grid_isRowFull(gtx, row)) {
-            grid_clearRow(gtx, row);
+        if (grid_isRowFull(grid, row)) {
+            grid_clearRow(grid, row);
         }
         if (row_flashDuration[row] > 0) {
             row_flashDuration[row] -= deltaTicks;
         }
-        row_flashOpacity[row] = modulate(gtx->tick, row_flashDuration[row]);
+        row_flashOpacity[row] = modulate(tick, row_flashDuration[row]);
     }
     for (int row = PLAYFIELD_YMAX; row >= 0; row--) {
-        if (grid_isRowEmpty(gtx, row)) {
-            grid_bubbleRowsDown(gtx, row);
+        if (grid_isRowEmpty(grid, row)) {
+            grid_bubbleRowsDown(grid, row);
         }
     }
 }
@@ -318,24 +318,12 @@ static void app_update(i64 dt_ms, GameContext* gtx) {
     const int app_TPS = 20;
 
     if (gtx->state == GameStateGameOver) {
-        // LOGERR("Game over!");
+        // LOG_ERROR("Game over!");
         return;
     }
-    gtx->tick = (i64)(ms_since_start(&ctx) / (1000.0 / app_TPS));  // 20 tps
+    gtx->tick = (i64)(ms_since_start() / (1000.0 / app_TPS));  // 20 tps
     i64 deltaTick = gtx->tick - tick_last_frame;
 
-    grid_update(deltaTick, gtx);
-    if (!gtx->isPieceActive && gtx->droptimer_current <= 0) {
-        gtx->activePiece = piecequeue_getNewPiece(&gtx->piecequeue, &gtx->activePiece);
-        gtx->isPieceActive = true;
-        LOGEXPR(gtx->activePiece);
-        LOGNOTICE("Spawned new piece @%.f,%.f", vec2_unpack(gtx->activePiece.g_pos));
-        if (!grid_isPieceSpaceFree(gtx->activePiece)) {
-            LOGNOTICE("Game over!");
-            gtx->state = GameStateGameOver;
-            return;
-        }
-    }
     if (deltaTick > 0) {
         if (gtx->isPieceActive) {
             if (gtx->tick % gtx->moveDownDelay == 0) {
@@ -346,14 +334,24 @@ static void app_update(i64 dt_ms, GameContext* gtx) {
             gtx->droptimer_current -= deltaTick;
         }
     }
+
+    grid_update(gtx->grid, deltaTick, gtx->tick);
+    if (!gtx->isPieceActive && gtx->droptimer_current <= 0) {
+        gtx->activePiece = piecequeue_getNewPiece(&gtx->piecequeue, &gtx->activePiece);
+        gtx->isPieceActive = true;
+        // LOG_EXPR(gtx->activePiece);
+        // LOG_NOTICE("Spawned new piece @%.f,%.f", vec2_unpack(gtx->activePiece.g_pos));
+        if (!grid_isPieceSpaceFree(gtx->activePiece)) {
+            LOG_NOTICE("Game over!");
+            gtx->state = GameStateGameOver;
+            return;
+        }
+    }
     tick_last_frame = gtx->tick;
 }
 
 typedef enum { Event_Continue, Event_Exit } EventResult;
 EventResult app_handleEvent(InputRequests* requests, SDL_Event* event) {
-    requests->rotate_left = false;
-    requests->rotate_right = false;
-
     switch (event->type) {
     case SDL_EVENT_KEY_DOWN:
         switch (event->key.key) {
@@ -407,32 +405,19 @@ EventResult app_handleEvent(InputRequests* requests, SDL_Event* event) {
 }
 
 static void handleInputRequests(void) {
-    if (ctx.inputReq.rotate_left) {
-        attemptPieceRotation(Direction_LEFT);
-        ctx.inputReq.rotate_left = false;
+#define handle(req, action)                                                                        \
+    if (ctx.inputReq.req) {                                                                        \
+        action;                                                                                    \
+        ctx.inputReq.req = false;                                                                  \
     }
 
-    if (ctx.inputReq.rotate_right) {
-        attemptPieceRotation(Direction_RIGHT);
-        ctx.inputReq.rotate_right = false;
-    }
-
-    if (ctx.inputReq.move_left_pressed) {
-        attemptPieceMove(Direction_LEFT);
-        ctx.inputReq.move_left_pressed = false;
-    }
-    if (ctx.inputReq.move_right_pressed) {
-        attemptPieceMove(Direction_RIGHT);
-        ctx.inputReq.move_right_pressed = false;
-    }
-    if (ctx.inputReq.fast_drop_pressed) {
-        attemptPieceMove(Direction_DOWN);
-        ctx.inputReq.fast_drop_pressed = false;
-    }
-    if (ctx.inputReq.instant_drop_pressed) {
-        while (attemptPieceMove(Direction_DOWN)) {}
-        ctx.inputReq.instant_drop_pressed = false;
-    }
+    handle(rotate_left, attemptPieceRotation(Direction_LEFT));
+    handle(rotate_right, attemptPieceRotation(Direction_RIGHT));
+    handle(rotate_right, attemptPieceRotation(Direction_RIGHT));
+    handle(move_left_pressed, attemptPieceMove(Direction_LEFT));
+    handle(move_right_pressed, attemptPieceMove(Direction_RIGHT));
+    handle(fast_drop_pressed, attemptPieceMove(Direction_DOWN));
+    handle(instant_drop_pressed, while (attemptPieceMove(Direction_DOWN)){});
 }
 
 //
@@ -485,13 +470,14 @@ int app_init(int argc, char* argv[]) {
 }
 
 int app_exit(int exitCode) {
-    LOGLN("Exiting. (%d),", exitCode);
+    LOG_INFO("Exiting. (%d),", exitCode);
     // we must now deinitialize everyything manually i think
     return exitCode;
 }
 
 int main(int argc, char** argv) {
     app_init(argc, argv);
+
     SDL_Event event = {};
     i64       dt_ms = {};
 
